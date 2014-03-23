@@ -18,10 +18,10 @@ class Restcontroller extends CI_Controller {
 	// Get encryption, and selected answer strings as two http requests.
 	// And calculate the player's scores, then update the db with those.
 	//
-	public function updateresult()
+	public function gameresult()
 	{
 
-		
+		echo "hi";
 		log_message('debug', 'recordgame logged');
 
 	}
@@ -36,11 +36,11 @@ class Restcontroller extends CI_Controller {
 
 		$this->load->model('Querydb');
 
-		$highest_row = $this->Querydb->highest_row();
+		$highest_row = 			$this->Querydb->highest_row();
 
-		$rand_playerid_1 = rand(1,$highest_row);
+		$rand_playerid_1 = 		rand(1,$highest_row);
 
-		$rand_playerid_2 = rand(1,$highest_row);
+		$rand_playerid_2 = 		rand(1,$highest_row);
 
 		if($rand_playerid_1 === $rand_playerid_2)
 		{
@@ -53,12 +53,67 @@ class Restcontroller extends CI_Controller {
 
 		}
 
-		//select info based on the random numbers (playerid) we generated above
+		// TODO: make sure the ip address hasn't voted for any of the goals previously.
+		// i.e. make sure either $rand_playerid_ is NOT already in the games table.
+		//
+		$ip_address = $this->input->ip_address();
+
+		//$redo = $this->Querydb->check_against_previous_games($rand_playerid_1,$rand_playerid_2,$ip_address);
+		echo $redo."<br>";
+
+		if($redo !== 'success')
+		{
+
+			$player_matches = $this->Querydb->select_while_not_equal($rand_playerid_1,$rand_playerid_2,$ip_address);
+
+
+
+		}
+
+
+		// get time
+		//
+		$t = 					microtime(true);
+		$micro = 				sprintf("%06d",($t - floor($t)) * 1000000);
+		$d = 					new DateTime( date('Y-m-d H:i:s.'.$micro,$t) );
+
+		$date_string = $d->format("Y-m-d H:i:s.u");
+
+		// create encryption key
+		//
+		$this->load->library('encrypt');
+
+		$msg = 					rand(1,9999).'42'.rand(1,9999).$date_string.rand(1,9999).'labsrus';
+
+		$encrypted_string = 	$this->encrypt->encode($msg);
+
+		log_message('debug', 'encrypted string:'.$encrypted_string);
+
+		// select info based on the random numbers (playerid) we generated above
+		//
 		$goal_string_1 = $this->Querydb->select_goal_by_id($rand_playerid_1);
 
 		$goal_string_2 = $this->Querydb->select_goal_by_id($rand_playerid_2);
 
-		echo $goal_string_1.",".$goal_string_2;
+		//echo $goal_string_1.",".$goal_string_2;
+		echo '{"game_data": [{"key": "'.$encrypted_string.'","goal1": "'.$goal_string_1.'","goal2": "'.$goal_string_2.'"}]}';
+
+
+		ignore_user_abort(true); //at this point the ajax may disconnect if it has a low enough timeout
+
+
+		// insert the game info we made above into the games table
+		//
+		$insert_data = array(
+		   'player1_id' => $rand_playerid_1,
+		   'player2_id' => $rand_playerid_2,
+		   'key' 		=> $encrypted_string,
+		   'ip'			=> $ip_address,
+		   'time'		=> date("Y-m-d H:i:s")
+		);
+
+		$this->Querydb->insert_game_data($insert_data);
+
 
 	}
 
