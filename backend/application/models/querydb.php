@@ -159,18 +159,89 @@ class Querydb extends CI_Model {
 
 	}
 
-	function add_future_games()
+	function make_played_games_object()
 	{
-
+		$sql = 'SELECT ';
 		
+		$query = $this->db->query($sql, array($player1_id,$player2_id,$player2_id,$player1_id,$ip));
+		
+		if ($query->num_rows() > 0)
+		{
 
+			foreach ($query->result() as $row)
+			{
+				//check which games the user has played by looping through 
+				$tmp["remaininggames"]["player1"][] = $row->player1_id;
+				$tmp["remaininggames"]["player2"][] = $row->player2_id;
+			}
+			return $player2_id;
+
+		}
+		else
+		{
+
+			return 'ultimatefail';
+
+		}
+
+		$query1->free_result();
 	}
 
-	function make_future_games()
+	function if_user_ip_exists($ip)
 	{
 
+		$sql = 'SELECT status FROM active_users WHERE ip = ?';
+		
+		$query = $this->db->query($sql, array($ip));	
 
+		if ($query->num_rows() > 0)
+		{
+			$row = $query->row();
+			return $row->status;
+		}
+		else
+		{
+			return 0;
+		}
+		$query->free_result();
 
 	}
+
+	function insert_into_active_users($insert_data)
+	{
+
+		$this->db->insert('active_users', $insert_data); 
+
+	}
+
+	function select_unplayed_games($player1_id,$player2_id)
+	{
+
+		$sql = 'SELECT playerid FROM ratings WHERE playerid != ? AND playerid != ?';
+
+		$query = $this->db->query($sql, array($player1_id,$player2_id));
+
+		if ($query->num_rows() > 0)
+		{
+
+			foreach ($query->result() as $row)
+			{
+				//$row = $query->row();
+				$data["remaininggoals"][] = $row->playerid;
+			}
+			return $data;
+
+		}
+		else
+		{
+
+			return 'fail'; //is this fails something is really wrong
+
+		}
+
+		$query->free_result();
+
+	}
+
 
 }
