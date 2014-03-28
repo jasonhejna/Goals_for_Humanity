@@ -20,9 +20,7 @@ class Restcontroller extends CI_Controller {
 	//
 	public function gameresult()
 	{
-
-		echo "hi";
-		log_message('debug', 'recordgame logged');
+		//check KEY to make sure they are 
 
 	}
 
@@ -31,7 +29,7 @@ class Restcontroller extends CI_Controller {
 	// that can be passed to the browser, and used to verify that the game
 	// was sanctioned by us.
 	//
-	public function selectplayers()//TODO: change to private
+/*	public function selectplayers()//TODO: change to private
 	{
 
 		$this->load->model('Querydb');
@@ -117,19 +115,20 @@ class Restcontroller extends CI_Controller {
 		$this->Querydb->insert_game_data($insert_data);
 
 
-	}
+	}*/
 
 	public function selectplayersrefactor()
 	{
+		ob_start();   // create a top output buffer 
 
-		$ip_address = $this->input->ip_address();
+		$ip_address = $this->input->ip_address();//TODO: use memcached
 
 		$this->load->model('Querydb');
 
 		//find out if their ip address is in our table. status may be outofgames, newuser, and 
 
 		$user_status = $this->Querydb->if_user_ip_exists($ip_address);
-echo $user_status.'<br>';
+
 		//act on the user_status
 		//
 		switch ($user_status) {
@@ -170,7 +169,7 @@ echo $user_status.'<br>';
 
 				$encrypted_string = 	$this->encrypt->encode($msg);
 
-				log_message('debug', 'encrypted string:'.$encrypted_string);
+				//log_message('debug', 'encrypted string:'.$encrypted_string);
 
 				$goal_string_1 = 		$this->Querydb->select_goal_by_id($rand_playerid_1);
 
@@ -180,7 +179,8 @@ echo $user_status.'<br>';
 				//
 				echo '{"game_data":[{"key": "'.$encrypted_string.'","goal1": "'.$goal_string_1.'","goal2": "'.$goal_string_2.'"}]}';
 
-				ignore_user_abort(true); //at this point the ajax may disconnect if it has a low enough timeout
+				ob_end_flush(); // php.net:'send the contents of the topmost output buffer and turn this output buffer off'
+    			//ob_flush();     // for an unknown reason, need another flush
 
 				//insert the new user into the active_users table
 				//
@@ -195,38 +195,107 @@ echo $user_status.'<br>';
 				//generate all remaining games for the player
 				//
 				$data = $this->Querydb->select_unplayed_games($rand_playerid_1,$rand_playerid_2);
-
+				//log_message('debug', 'select uploayed games:'.print_r($data));
 				//randomize the goals
 				//
 				shuffle($data["remaininggoals"]);
 				
 				//insert the remaining goals into remaininggames table
-				foreach ($data["remaininggoals"] as $value) 
-				{
-					echo $value.',';
-					//make encryption string
+				//
+				//$remaining_goal_count =			count($data["remaininggoals"]);
 
-					$this->Querydb->insert_remaining_games($value);
-					
+				$l =							1;
+				foreach ($data["remaininggoals"] as $goal) 
+				{
+
+					if( $l%2 === 0)
+					{
+
+						//make encryption string with time and some random numbers
+						//
+						$t = 					microtime(true);
+						$micro = 				sprintf("%06d",($t - floor($t)) * 1000000);
+						$d = 					new DateTime( date('Y-m-d H:i:s.'.$micro,$t) );
+
+						$date_string = 			$d->format("Y-m-d H:i:s.u");
+						//log_message('debug', 'forloopdate:'.$date_string);
+
+						// create encryption key
+						//
+						$msg = 					rand(1,9999).'42'.rand(1,9999).$date_string.rand(1,9999).'labsrus';
+
+						$encrypted_string = 	$this->encrypt->encode($msg);
+
+						//log_message('debug', 'encrypted string:'.$encrypted_string);
+
+						$remaining_game = array(
+						   'ip' =>				$ip_address,
+						   'player1_id' =>		$goal,
+						   'player2_id'	=>		$last_goal,
+						   'key' =>				$encrypted_string,
+						   'time' =>			date("Y-m-d H:i:s")
+						);
+
+						$this->Querydb->insert_remaining_games($remaining_game);
+
+					}
+					else
+					{
+						$last_goal =			$goal;
+					}
+					$l++;
 				}
 
 		        break;
-		    case 1: //games left to play: lets play
-		        echo "i equals 1";
+		    case 1: //games left to play
 
-		        //check to make sure there is a remaining games, else; look for newly created players
+		        //check to make sure there is a remaining game, else; look for newly created goals
+		    	$game_data = $this->Querydb->select_delete_remaining_game($ip_address);
 
-		        //if remaining game: select a remaining game.
+		        //if there's a remaining game, else echo all games played
+		        if(isset($game_data) && $game_data !== 0)
+		        {
 
-		        //delete the game from the remaining games tables
+			        //echo game data
+					echo '{"game_data":[{"key": "'.$game_data["currentgamedata"]["key"].'","goal1": "'.$game_data["currentgamedata"]["goal1"].'","goal2": "'.$game_data["currentgamedata"]["goal2"].'"}]}';
 
-		        //echo game data
+		        	ob_end_flush(); // php.net:'send the contents of the topmost output buffer and turn this output buffer off'
+    				//ob_flush();     // for an unknown reason, need another flush
+
+		        }
+		        elseif($game_data === 0)
+		        {
+
+		        	//check if there are new players and re-calculate (MAKE A NEW METHOD)
+
+		        	//update active_users status to 2
+		        	$this->Querydb->update_active_users($ip_address,2);
+
+		        	echo "all games played";
+
+		        	ob_end_flush(); // php.net:'send the contents of the topmost output buffer and turn this output buffer off'
+    				//ob_flush();     // for an unknown reason, need another flush
+
+		        }
+		        else
+		        {
+
+		        	echo "something went wrong";
+
+		        	ob_end_flush(); // php.net:'send the contents of the topmost output buffer and turn this output buffer off'
+    				//ob_flush();     // for an unknown reason, need another flush
+
+		        }
 
 		        break;
 		    case 2:
-		    	//check if there are any new players, if yes, then create ONLY new remaining games from players.
+		    	//check if there are any new players, if yes, then create ONLY new (if the current 
+		    	//time is greater than time in since a goal was creted) games from players.
 		        //else, then echo that all games are played.
 		        echo "all games played";
+
+		        ob_end_flush(); // php.net:'send the contents of the topmost output buffer and turn this output buffer off'
+    			//ob_flush();     // for an unknown reason, need another flush
 		        
 		        break;
 		}

@@ -12,15 +12,15 @@ class Querydb extends CI_Model {
 		{
 
 		   $row = $query->row();
+		   $query->free_result();
 		   return $row->playerid;
 
 		}
 		else
 		{
+			$query->free_result();
 			return 'fail';
 		}
-
-		$query->free_result();
 
 	}
 
@@ -34,15 +34,15 @@ class Querydb extends CI_Model {
 		{
 
 		   $row = $query->row();
+		   $query->free_result();
 		   return $row->goal;
 
 		}
 		else
 		{
+			$query->free_result();
 			return 'fail';
 		}
-
-		$query->free_result();
 
 	}
 
@@ -52,15 +52,7 @@ class Querydb extends CI_Model {
 
 		$this->db->insert('games', $insert_data); 
 
-		// Produces: INSERT INTO mytable (title, name, date) VALUES ('My title', 'My name', 'My date')
 
-/*		$sql = "INSERT INTO games (player1_id,player2_id,key,ip,time) VALUES (?,?,hi,i,k)";
-
-		if($this->db->query($sql, array($rand_playerid_1,$rand_playerid_2))){
-			echo "okay";
-		}*/
-
-		//$query->free_result();
 	}
 
 	//for a matching ip address; make sure neither of the two games has been played before by checking their ids
@@ -83,6 +75,7 @@ class Querydb extends CI_Model {
 
 				$tmp["previousgamedata"]["player1"][] = $player1_id;
 				$tmp["previousgamedata"]["player2"][] = $player2_id;
+				$query1->free_result();
 				return 'failtwo';
 
 			}
@@ -90,13 +83,10 @@ class Querydb extends CI_Model {
 			{
 
 				$tmp["previousgamedata"]["player1"][] = $player1_id;
+				$query1->free_result();
 				return 'failone';
 
 			}
-
-			$query1->free_result();
-
-			
 
 		}
 		else
@@ -109,12 +99,14 @@ class Querydb extends CI_Model {
 			if ($query1->num_rows() > 0)
 			{
 
+				$query1->free_result();
 				return $player2_id;
 
 			}
 			else
 			{
 
+				$query1->free_result();
 				return 'pass';
 
 			}
@@ -145,17 +137,16 @@ class Querydb extends CI_Model {
 				$tmp["unmatchesgames"]["player1"][] = $row->player1_id;
 				$tmp["unmatchesgames"]["player2"][] = $row->player2_id;
 			}
+			$query->free_result();
 			return $player2_id;
 
 		}
 		else
 		{
-
+			$query->free_result();
 			return 'ultimatefail';
 
 		}
-
-		$query1->free_result();
 
 	}
 
@@ -174,17 +165,18 @@ class Querydb extends CI_Model {
 				$tmp["remaininggames"]["player1"][] = $row->player1_id;
 				$tmp["remaininggames"]["player2"][] = $row->player2_id;
 			}
+			$query->free_result();
 			return $player2_id;
 
 		}
 		else
 		{
 
+			$query->free_result();
 			return 'ultimatefail';
 
 		}
 
-		$query1->free_result();
 	}
 
 	function if_user_ip_exists($ip)
@@ -197,13 +189,14 @@ class Querydb extends CI_Model {
 		if ($query->num_rows() > 0)
 		{
 			$row = $query->row();
+			$query->free_result();
 			return $row->status;
 		}
 		else
 		{
+			$query->free_result();
 			return 0;
 		}
-		$query->free_result();
 
 	}
 
@@ -229,18 +222,89 @@ class Querydb extends CI_Model {
 				//$row = $query->row();
 				$data["remaininggoals"][] = $row->playerid;
 			}
+			$query->free_result();
 			return $data;
 
 		}
 		else
 		{
 
+			$query->free_result();
 			return 'fail'; //is this fails something is really wrong
 
 		}
 
-		$query->free_result();
+	}
 
+	function insert_remaining_games($insert_data)
+	{
+
+		$this->db->insert('remaining_games', $insert_data);
+
+	}
+
+	function select_delete_remaining_game($ip)
+	{
+
+		$sql = 'SELECT * FROM remaining_games WHERE ip = ? LIMIT 0,1';
+		
+		$query = $this->db->query($sql, array($ip));	
+
+		if ($query->num_rows() > 0)
+		{
+			$row = $query->row();
+
+			$query->free_result();
+
+			//delete the remaining_game
+			$this->db->delete('remaining_games', array('id' => $row->id));
+
+			$data["currentgamedata"]["key"]		 		= $row->key;
+
+
+			$sql1 = 'SELECT goal FROM ratings WHERE playerid = ?';
+		
+			$query1 = $this->db->query($sql1, array($row->player1_id));
+
+			$row1 = $query1->row();
+
+			$query1->free_result();
+
+			$data["currentgamedata"]["goal1"]				= $row1->goal;
+
+
+			$sql2 = 'SELECT goal FROM ratings WHERE playerid = ?';
+		
+			$query2 = $this->db->query($sql2, array($row->player2_id));
+
+			$row2 = $query2->row();
+
+			$query2->free_result();
+
+			$data["currentgamedata"]["goal2"]				= $row2->goal;
+
+			return $data;
+
+		}
+		else
+		{
+			$query->free_result();
+
+			return 0;
+		}
+		
+
+	}
+
+	function update_active_users($ip,$status)
+	{
+		$data = array(
+               'status' => $status
+            );
+
+		$this->db->where('id', $ip);
+
+		$this->db->update('active_users', $data);
 	}
 
 
