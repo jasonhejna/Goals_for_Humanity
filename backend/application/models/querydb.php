@@ -248,40 +248,40 @@ class Querydb extends CI_Model {
 
 		$sql = 'SELECT * FROM remaining_games WHERE ip = ? LIMIT 0,1';
 		
-		$query = $this->db->query($sql, array($ip));	
+		$query 										= $this->db->query($sql, array($ip));	
 
 		if ($query->num_rows() > 0)
 		{
-			$row = $query->row();
+			$row 									= $query->row();
 
 			$query->free_result();
 
 			//delete the remaining_game
 			$this->db->delete('remaining_games', array('id' => $row->id));
 
-			$data["currentgamedata"]["key"]		 		= $row->key;
+			$data["currentgamedata"]["key"]		 	= $row->key;
 
 
-			$sql1 = 'SELECT goal FROM ratings WHERE playerid = ?';
+			$sql1 									= 'SELECT goal FROM ratings WHERE playerid = ?';
 		
-			$query1 = $this->db->query($sql1, array($row->player1_id));
+			$query1 								= $this->db->query($sql1, array($row->player1_id));
 
-			$row1 = $query1->row();
+			$row1 									= $query1->row();
 
 			$query1->free_result();
 
-			$data["currentgamedata"]["goal1"]				= $row1->goal;
+			$data["currentgamedata"]["goal1"]		= $row1->goal;
 
 
-			$sql2 = 'SELECT goal FROM ratings WHERE playerid = ?';
+			$sql2 									= 'SELECT goal FROM ratings WHERE playerid = ?';
 		
-			$query2 = $this->db->query($sql2, array($row->player2_id));
+			$query2 								= $this->db->query($sql2, array($row->player2_id));
 
-			$row2 = $query2->row();
+			$row2 									= $query2->row();
 
 			$query2->free_result();
 
-			$data["currentgamedata"]["goal2"]				= $row2->goal;
+			$data["currentgamedata"]["goal2"]		= $row2->goal;
 
 			return $data;
 
@@ -292,20 +292,93 @@ class Querydb extends CI_Model {
 
 			return 0;
 		}
-		
 
 	}
 
-	function update_active_users($ip,$status)
+	function update_active_users_status($ip,$status)
 	{
-		$data = array(
-               'status' => $status
-            );
 
-		$this->db->where('id', $ip);
+		$data 										= array(
+												        'status' => $status,
+												    );
+
+		$this->db->where('ip', $ip);
+
+		$this->db->update('active_users', $data);
+
+	}
+
+	function select_unplayed_games_since($time)
+	{
+		
+		$sql = 'SELECT playerid FROM ratings WHERE time > ?';
+
+		$query = $this->db->query($sql, array($time));
+
+		if ($query->num_rows() > 1)
+		{
+
+			foreach ($query->result() as $row)
+			{
+				//$row = $query->row();
+				$data["newremaininggoals"][] = $row->playerid;
+			}
+			$query->free_result();
+			return $data;
+
+		}
+		else
+		{
+
+			$query->free_result();
+			return "fail";
+
+		}
+
+	}
+
+	function update_active_users_time($ip,$time)
+	{
+		$data 				= array(
+								'time' => $time
+							);
+
+		$this->db->where('ip', $ip);
 
 		$this->db->update('active_users', $data);
 	}
 
+	function select_active_user_time($ip)
+	{
+
+		$sql 									= 'SELECT time FROM active_users WHERE ip = ?';
+
+		$query 									= $this->db->query($sql, array($ip));
+
+		$row 									= $query->row();
+
+		$query->free_result();
+
+		return $row->time;
+
+	}
+
+	function select_active_user_greater_time($ip,$time_now)
+	{
+		$sql 									= 'SELECT id FROM active_users WHERE ip = ? AND time < ?';
+
+		$query 									= $this->db->query($sql, array($ip,$time_now));
+
+		if ($query->num_rows() > 0)
+		{
+			$query->free_result();
+			return 0;//success
+		}
+		else
+		{
+			$query->free_result();
+			return 1;
+		}
+	}
 
 }
