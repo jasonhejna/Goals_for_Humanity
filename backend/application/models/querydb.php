@@ -1,6 +1,76 @@
  <?php if ( ! defined('BASEPATH')) exit('No direct script access allowed');
 
 class Querydb extends CI_Model {
+
+	function check_remaining_game($ip,$key)
+	{
+
+		$sql 									= 'SELECT player1_id,player2_id FROM remaining_games WHERE ip = ? AND key = ?';
+
+		$query 									= $this->db->query($sql, array($ip,$key));
+
+		if ($query->num_rows() > 0)
+		{
+			$row = $query->row();
+			$query->free_result();
+
+			$data["playerid"][1] = $row->player1_id;
+			$data["playerid"][2] = $row->player2_id;
+
+			return $data;
+		}
+		else
+		{
+			$query->free_result();
+			return 0;
+		}
+		
+	}
+
+	function get_ratings_by_playerid($player1_id,$player2_id)
+	{
+
+		$sql 									= 'SELECT rating FROM ratings WHERE playerid = ?';
+
+		$query 									= $this->db->query($sql, array($player1_id));
+
+		if ($query->num_rows() > 0)
+		{
+			$row = $query->row();
+			$query->free_result();
+
+			$player_data["rating"][1] = $row->rating;
+		}
+		else
+		{
+			$query->free_result();
+			return 0;
+		}
+
+		$sql1 									= 'SELECT rating FROM ratings WHERE playerid = ?';
+
+		$query1 									= $this->db->query($sql1, array($player2_id));
+
+		if ($query1->num_rows() > 0)
+		{
+			$row1 = $query1->row();
+			$query1->free_result();
+
+			$player_data["rating"][2] = $row1->rating;
+		}
+		else
+		{
+			$query1->free_result();
+			return 0;
+		}
+
+	}
+
+	function delete_game()
+	{
+		//delete the remaining_game
+		//$this->db->delete('remaining_games', array('id' => $row->id));
+	}
 	
 	//find two ranrom players in the ratings table. TODO: select two random rating's
 	function highest_row ()
@@ -42,139 +112,6 @@ class Querydb extends CI_Model {
 		{
 			$query->free_result();
 			return 'fail';
-		}
-
-	}
-
-	function insert_game_data ($insert_data)
-	{
-
-
-		$this->db->insert('games', $insert_data); 
-
-
-	}
-
-	//for a matching ip address; make sure neither of the two games has been played before by checking their ids
-	//this is also looped through until we find a game
-	function check_against_previous_games ($player1_id,$player2_id,$ip)
-	{
-
-		$sql = 'SELECT id FROM games WHERE player1_id = ? OR player2_id = ? AND ip = ?';
-
-		$query = $this->db->query($sql, array($player1_id,$player1_id,$ip));
-
-		if ($query->num_rows() > 0)
-		{
-			$sql1 = 'SELECT id FROM games WHERE player1_id = ? OR player2_id = ? AND ip = ?';
-
-			$query1 = $this->db->query($sql1, array($player2_id,$player2_id,$ip));
-
-			if ($query1->num_rows() > 0)
-			{
-
-				$tmp["previousgamedata"]["player1"][] = $player1_id;
-				$tmp["previousgamedata"]["player2"][] = $player2_id;
-				$query1->free_result();
-				return 'failtwo';
-
-			}
-			else
-			{
-
-				$tmp["previousgamedata"]["player1"][] = $player1_id;
-				$query1->free_result();
-				return 'failone';
-
-			}
-
-		}
-		else
-		{
-
-			$sql1 = 'SELECT id FROM games WHERE player1_id = ? OR player2_id = ? AND ip = ?';
-
-			$query1 = $this->db->query($sql1, array($player2_id,$player2_id,$ip));
-
-			if ($query1->num_rows() > 0)
-			{
-
-				$query1->free_result();
-				return $player2_id;
-
-			}
-			else
-			{
-
-				$query1->free_result();
-				return 'pass';
-
-			}
-
-			$query1->free_result();
-
-		}
-
-		$query->free_result();
-
-	}
-
-
-	function select_while_not_equal($player1_id,$player2_id,$ip)
-	{
-
-
-		$sql = 'SELECT player1_id,player2_id FROM games WHERE player1_id != ? AND player2_id != ? AND player1_id != ? AND player2_id != ? AND ip = ?';
-		
-		$query = $this->db->query($sql, array($player1_id,$player2_id,$player2_id,$player1_id,$ip));
-		
-		if ($query->num_rows() > 0)
-		{
-
-			foreach ($query->result() as $row)
-			{
-				//check which games the user has played by looping through 
-				$tmp["unmatchesgames"]["player1"][] = $row->player1_id;
-				$tmp["unmatchesgames"]["player2"][] = $row->player2_id;
-			}
-			$query->free_result();
-			return $player2_id;
-
-		}
-		else
-		{
-			$query->free_result();
-			return 'ultimatefail';
-
-		}
-
-	}
-
-	function make_played_games_object()
-	{
-		$sql = 'SELECT ';
-		
-		$query = $this->db->query($sql, array($player1_id,$player2_id,$player2_id,$player1_id,$ip));
-		
-		if ($query->num_rows() > 0)
-		{
-
-			foreach ($query->result() as $row)
-			{
-				//check which games the user has played by looping through 
-				$tmp["remaininggames"]["player1"][] = $row->player1_id;
-				$tmp["remaininggames"]["player2"][] = $row->player2_id;
-			}
-			$query->free_result();
-			return $player2_id;
-
-		}
-		else
-		{
-
-			$query->free_result();
-			return 'ultimatefail';
-
 		}
 
 	}
@@ -243,7 +180,7 @@ class Querydb extends CI_Model {
 
 	}
 
-	function select_delete_remaining_game($ip)
+	function select_remaining_game($ip)
 	{
 
 		$sql = 'SELECT * FROM remaining_games WHERE ip = ? LIMIT 0,1';
@@ -257,7 +194,7 @@ class Querydb extends CI_Model {
 			$query->free_result();
 
 			//delete the remaining_game
-			$this->db->delete('remaining_games', array('id' => $row->id));
+			//$this->db->delete('remaining_games', array('id' => $row->id));
 
 			$data["currentgamedata"]["key"]		 	= $row->key;
 
@@ -340,7 +277,18 @@ class Querydb extends CI_Model {
 	function update_active_users_time($ip,$time)
 	{
 		$data 				= array(
-								'time' => $time
+								'time' 			=> $time
+							);
+
+		$this->db->where('ip', $ip);
+
+		$this->db->update('active_users', $data);
+	}
+
+	function active_user_lockout_time($ip,$time)
+	{
+		$data 				= array(
+								'lockout_time' => $time
 							);
 
 		$this->db->where('ip', $ip);
@@ -365,20 +313,21 @@ class Querydb extends CI_Model {
 
 	function select_active_user_greater_time($ip,$time_now)
 	{
-		$sql 									= 'SELECT id FROM active_users WHERE ip = ? AND time < ?';
+		$sql 									= 'SELECT id FROM active_users WHERE ip = ? AND time < ? AND lockout_time < ?';
 
-		$query 									= $this->db->query($sql, array($ip,$time_now));
+		$query 									= $this->db->query($sql, array($ip,$time_now,$time_now));
 
 		if ($query->num_rows() > 0)
 		{
 			$query->free_result();
-			return 0;//success
+			return 1;//success
 		}
 		else
 		{
 			$query->free_result();
-			return 1;
+			return 0;
 		}
+
 	}
 
 }

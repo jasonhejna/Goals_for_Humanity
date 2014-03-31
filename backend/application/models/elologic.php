@@ -9,12 +9,12 @@ class Elologic extends CI_Model {
 	protected $score2;
 	//protected $k = 50;
 	
-	function __construct($rating1 = 1500, $rating2 = 1500)
+	/*function __construct($rating1 = 1600, $rating2 = 1100)
     {
         parent::__construct();
         $this->rating1 = $rating1;
 		$this->rating2 = $rating2;
-    }
+    }*/
 
 /*	public function __construct($rating1 = 1500, $rating2 = 1500) {
 		$this->rating1 = $rating1;
@@ -24,16 +24,19 @@ class Elologic extends CI_Model {
     // setResult($result)
 	// Call when you want to update the ratings (after a game, etc.)
 	// $result = ELO_RESULT_WIN or ELO_RESULT_LOSS or ELO_RESULT_TIE
-	public function setResult($result) {
+	public function setResult($result,$rating1,$rating2) {
+		$this->rating1 = $rating1;
+		$this->rating2 = $rating2;
+
 		$cscore1 = $this->computeScore($this->rating2, $this->rating1);
 		$cscore2 = $this->computeScore($this->rating1, $this->rating2);
 		if ($result == 1) {
 			$this->rating1 = $this->rating1 + ($this->computeK($this->rating1) * (1 - $cscore1));
 			$this->rating2 = $this->rating2 + ($this->computeK($this->rating2) * (0 - $cscore2));
-		} elseif ($result == 0) {
+		} elseif ($result == 2) {
 			$this->rating1 = $this->rating1 + ($this->computeK($this->rating1) * (0 - $cscore1));
 			$this->rating2 = $this->rating2 + ($this->computeK($this->rating2) * (1 - $cscore2));
-		} else {
+		} elseif ($result == 0) {
 			// Assume tie
 			$this->rating1 = $this->rating1 + ($this->computeK($this->rating1) * (0.5 - $cscore1));
 			$this->rating2 = $this->rating2 + ($this->computeK($this->rating2) * (0.5 - $cscore2));

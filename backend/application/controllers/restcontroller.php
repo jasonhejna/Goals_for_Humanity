@@ -8,7 +8,7 @@ class Restcontroller extends CI_Controller {
 	{
 		$this->load->model('Elologic');
 
-		$this->Elologic->setResult(1);
+		$this->Elologic->setResult(0,1700,1100);//0 is tie, 1 is player one, 2 is player two
 
 		echo $this->Elologic->getRating1() . ", ";
 		echo $this->Elologic->getRating2();
@@ -18,12 +18,74 @@ class Restcontroller extends CI_Controller {
 	// Get encryption, and selected answer strings as two http requests.
 	// And calculate the player's scores, then update the db with those.
 	//
-	public function gameresult()
+	public function gameresult($key,$player_won)
 	{
-		//check KEY and ip to make sure it's a legit game 
-			//if success
+		ob_start();   // create a top output buffer 
+
+		$ip_address = $this->input->ip_address();
+
+		if ( ! $this->input->valid_ip($ip_address))
+		{
+		    
+		    echo 'Your ip address is not valid. Sorry about that.';//todo: use header
+
+			ob_end_flush(); // php.net:'send the contents of the topmost output buffer and turn this output buffer off'
+    		//ob_flush();     // for an unknown reason, need another flush
+
+		}
+
+		$player_won =			intval($player_won);
+
+		if($player_won !== 0 || $player_won !== 1 || $player_won !== 2)
+		{
+			echo "inproper post value: game result".$player_won;//todo: use header
+
+			ob_end_flush(); // php.net:'send the contents of the topmost output buffer and turn this output buffer off'
+    		//ob_flush();     // for an unknown reason, need another flush
+
+			exit();
+		}
+
+		$this->load->model('Querydb');
+
+		//check KEY and ip to make sure it's a legit game
+		$data =				$this->Querydb->check_remaining_game($ip_address,$key);
+
+		if($data === 0)
+		{
+
+			echo "Couldn't find this game. Please refresh.";//todo: use header
+
+			ob_end_flush(); // php.net:'send the contents of the topmost output buffer and turn this output buffer off'
+    		//ob_flush();     // for an unknown reason, need another flush
+
+    		exit();
+
+		}
+
+		echo "thanks";
+
+		//ob_end_flush(); // php.net:'send the contents of the topmost output buffer and turn this output buffer off'
+    	//ob_flush();     // for an unknown reason, need another flush
+
+		//get rating by player id
+		$player_data =			$this->Querydb->get_ratings_by_playerid($data["playerid"][1],$data["playerid"][2]);
+
+		$this->load->model('Elologic');
+
+		$this->Elologic->setResult($player_won,$player_data["rating"][1],$player_data["rating"][2]);//0 is tie, 1 is player one, 2 is player two
+
+		echo $this->Elologic->getRating1() . ", ";
+		echo $this->Elologic->getRating2();
+
+		ob_end_flush(); // php.net:'send the contents of the topmost output buffer and turn this output buffer off'
+    	//ob_flush();     // for an unknown reason, need another flush
+
+		//if success
 
 				//calculate elo
+
+				//delete remaining_game
 
 				//update ratings table
 
@@ -31,104 +93,21 @@ class Restcontroller extends CI_Controller {
 
 	}
 
-
-	// This will select two goals from the db, create an encrypted string
-	// that can be passed to the browser, and used to verify that the game
-	// was sanctioned by us.
-	//
-/*	public function selectplayers()
-	{
-
-		$this->load->model('Querydb');
-
-		$highest_row = 			$this->Querydb->highest_row();
-
-		$rand_playerid_1 = 		rand(1,$highest_row);
-
-		$rand_playerid_2 = 		rand(1,$highest_row);
-
-		if($rand_playerid_1 === $rand_playerid_2)
-		{
-
-			while($rand_playerid_1 === $rand_playerid_2){
-
-				$rand_playerid_2 = rand(1,$highest_row);
-
-			}
-
-		}
-
-		// TODO: make sure the ip address hasn't voted for any of the goals previously.
-		// i.e. make sure either $rand_playerid_ is NOT already in the games table.
-		//
-		$ip_address = $this->input->ip_address();
-
-		$redo = $this->Querydb->check_against_previous_games($rand_playerid_1,$rand_playerid_2,$ip_address);
-		echo $redo."<br>";
-
-		if($redo !== 'success')
-		{
-
-			$this->Querydb->make_played_games_object();
-
-			$player_matches = $this->Querydb->select_while_not_equal($rand_playerid_1,$rand_playerid_2,$ip_address);
-
-
-
-		}
-
-
-		// get time
-		//
-		$t = 					microtime(true);
-		$micro = 				sprintf("%06d",($t - floor($t)) * 1000000);
-		$d = 					new DateTime( date('Y-m-d H:i:s.'.$micro,$t) );
-
-		$date_string = $d->format("Y-m-d H:i:s.u");
-
-		// create encryption key
-		//
-		$this->load->library('encrypt');
-
-		$msg = 					rand(1,9999).'42'.rand(1,9999).$date_string.rand(1,9999).'labsrus';
-
-		$encrypted_string = 	$this->encrypt->encode($msg);
-
-		log_message('debug', 'encrypted string:'.$encrypted_string);
-
-		// select info based on the random numbers (playerid) we generated above
-		//
-		$goal_string_1 = $this->Querydb->select_goal_by_id($rand_playerid_1);
-
-		$goal_string_2 = $this->Querydb->select_goal_by_id($rand_playerid_2);
-
-		//echo $goal_string_1.",".$goal_string_2;
-		echo '{"game_data": [{"key": "'.$encrypted_string.'","goal1": "'.$goal_string_1.'","goal2": "'.$goal_string_2.'"}]}';
-
-
-		ignore_user_abort(true); //at this point the ajax may disconnect if it has a low enough timeout
-
-
-		// insert the game info we made above into the games table
-		//
-		$insert_data = array(
-		   'player1_id' => $rand_playerid_1,
-		   'player2_id' => $rand_playerid_2,
-		   'key' 		=> $encrypted_string,
-		   'ip'			=> $ip_address,
-		   'time'		=> date("Y-m-d H:i:s")
-		);
-
-		$this->Querydb->insert_game_data($insert_data);
-
-
-	}*/
-
-	public function selectplayersrefactor()
+	public function selectplayers()
 	{
 		ob_start();   // create a top output buffer 
 
-		$ip_address = $this->input->ip_address();//TODO: use memcached
+		$ip_address = $this->input->ip_address();
+
+		if ( ! $this->input->valid_ip($ip_address))
+		{
+		    
+		    echo 'Your ip address is not valid. Sorry about that.';
+
+			ob_end_flush(); // php.net:'send the contents of the topmost output buffer and turn this output buffer off'
+    		//ob_flush();     // for an unknown reason, need another flush
+
+		}
 
 		$this->load->model('Querydb');
 
@@ -144,9 +123,10 @@ class Restcontroller extends CI_Controller {
 		    	//insert the new user into the active_users table
 				//
 				$insert_data = array(
-				   'ip' 	=> $ip_address,
-				   'time'	=> date("Y-m-d H:i:s"),
-				   'status' => 1
+				   'ip' 			=> $ip_address,
+				   'time'			=> date("Y-m-d H:i:s"),
+				   'status' 		=> 1,
+				   'lockout_time'	=> date("Y-m-d H:i:s")
 				);
 
 				$this->Querydb->insert_into_active_users($insert_data);
@@ -186,6 +166,8 @@ class Restcontroller extends CI_Controller {
 
 				$encrypted_string = 	$this->encrypt->encode($msg);
 
+				$encrypted_string = 	urlencode($encrypted_string);
+
 				log_message('debug', 'encrypted string:'.$encrypted_string);
 
 				$goal_string_1 = 		$this->Querydb->select_goal_by_id($rand_playerid_1);
@@ -218,7 +200,8 @@ class Restcontroller extends CI_Controller {
 				//log_message('debug', 'select uploayed games:'.print_r($data));
 				//randomize the goals
 				//
-				if(empty($data["remaininggoals"][1])){
+				if(empty($data["remaininggoals"][1]))
+				{
 					log_message('error', 'selecting unplayed games failed');
 					exit();
 				}
@@ -249,6 +232,8 @@ class Restcontroller extends CI_Controller {
 
 						$encrypted_string = 	$this->encrypt->encode($msg);
 
+						$encrypted_string = 	urlencode($encrypted_string);
+
 						//log_message('debug', 'encrypted string:'.$encrypted_string);
 
 						$remaining_game = array(
@@ -273,7 +258,7 @@ class Restcontroller extends CI_Controller {
 		    case 1: //games left to play
 
 		        //check to make sure there is a remaining game, else; look for newly created goals
-		    	$game_data = $this->Querydb->select_delete_remaining_game($ip_address);
+		    	$game_data = $this->Querydb->select_remaining_game($ip_address);
 
 		        //if there's a remaining game, else echo all games played
 		        if(isset($game_data) && $game_data !== 0)
@@ -316,21 +301,21 @@ class Restcontroller extends CI_Controller {
 
 			    $pass =		$this->Querydb->select_active_user_greater_time($ip_address,$time_now);
 
-			    if($pass === 0)
+			    if($pass === 1)
 			    {
 			    	//check if there are new players and re-calculate
 					$this->remaining_games_since($ip_address);
 			    }
 			    else
 			    {
+
 			    	echo "cool down";
 
 			    	ob_end_flush(); // php.net:'send the contents of the topmost output buffer and turn this output buffer off'
 	    			//ob_flush();     // for an unknown reason, need another flush
 
-	    			//update active_user_time to now TODO fix to update a new table value
-					$this->Querydb->update_active_users_time($ip_address,date("Y-m-d H:i:s"));
-
+	    			//update active_user_lockout_time to now
+					$this->Querydb->active_user_lockout_time($ip_address,date("Y-m-d H:i:s"));
 
 			    }
 
@@ -350,7 +335,6 @@ class Restcontroller extends CI_Controller {
 
 		$data = 					$this->Querydb->select_unplayed_games_since($user_time);
 
-
 		if($data === 'fail')
 		{
 
@@ -359,7 +343,8 @@ class Restcontroller extends CI_Controller {
 			ob_end_flush(); // php.net:'send the contents of the topmost output buffer and turn this output buffer off'
     		//ob_flush();     // for an unknown reason, need another flush
 
-    		//TODO update_refresh_time
+    		//update_refresh_time
+    		$this->Querydb->active_user_lockout_time($ip_address,date("Y-m-d H:i:s"));
 
     		$this->Querydb->update_active_users_status($ip_address,2);
 
@@ -393,6 +378,8 @@ class Restcontroller extends CI_Controller {
 				//
 				$msg = 					rand(1,9999).'42'.rand(1,9999).$date_string.rand(1,9999).'labsrus';
 				$encrypted_string = 	$this->encrypt->encode($msg);
+
+				$encrypted_string = 	urlencode($encrypted_string);
 				//log_message('debug', 'encrypted string:'.$encrypted_string);
 
 				if($l === 2)
