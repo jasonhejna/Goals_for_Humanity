@@ -38,8 +38,10 @@
 |
 */
 
-$route['default_controller'] = "restcontroller";
-$route['404_override'] = '';
+//$route['default_controller'] = "restcontroller/selectplayers";
+$route['selectplayers'] 	= 'restcontroller/selectplayers';
+$route['gameresult/(:any)/(:num)']		= 'restcontroller/gameresult/$1/$2';
+$route['404_override'] 		= '';
 
 
 /* End of file routes.php */

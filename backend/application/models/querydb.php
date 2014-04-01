@@ -5,7 +5,7 @@ class Querydb extends CI_Model {
 	function check_remaining_game($ip,$key)
 	{
 
-		$sql 									= 'SELECT player1_id,player2_id FROM remaining_games WHERE ip = ? AND key = ?';
+		$sql 									= 'SELECT id, player1_id, player2_id FROM remaining_games WHERE ip = ? AND vkey = ? ';
 
 		$query 									= $this->db->query($sql, array($ip,$key));
 
@@ -14,8 +14,9 @@ class Querydb extends CI_Model {
 			$row = $query->row();
 			$query->free_result();
 
-			$data["playerid"][1] = $row->player1_id;
-			$data["playerid"][2] = $row->player2_id;
+			$data["playerid"][1] =			$row->player1_id;
+			$data["playerid"][2] =			$row->player2_id;
+			$data["remaininggame"][1] =		$row->id;
 
 			return $data;
 		}
@@ -30,7 +31,7 @@ class Querydb extends CI_Model {
 	function get_ratings_by_playerid($player1_id,$player2_id)
 	{
 
-		$sql 									= 'SELECT rating FROM ratings WHERE playerid = ?';
+		$sql 									= 'SELECT playerid, rating FROM ratings WHERE playerid = ?';
 
 		$query 									= $this->db->query($sql, array($player1_id));
 
@@ -38,6 +39,8 @@ class Querydb extends CI_Model {
 		{
 			$row = $query->row();
 			$query->free_result();
+
+			$player_data["playerid"][1] = $row->playerid;
 
 			$player_data["rating"][1] = $row->rating;
 		}
@@ -47,7 +50,7 @@ class Querydb extends CI_Model {
 			return 0;
 		}
 
-		$sql1 									= 'SELECT rating FROM ratings WHERE playerid = ?';
+		$sql1 									= 'SELECT playerid, rating FROM ratings WHERE playerid = ?';
 
 		$query1 									= $this->db->query($sql1, array($player2_id));
 
@@ -56,7 +59,11 @@ class Querydb extends CI_Model {
 			$row1 = $query1->row();
 			$query1->free_result();
 
+			$player_data["playerid"][2] = $row1->playerid;
+
 			$player_data["rating"][2] = $row1->rating;
+
+			return $player_data;
 		}
 		else
 		{
@@ -66,10 +73,19 @@ class Querydb extends CI_Model {
 
 	}
 
-	function delete_game()
+	function update_ratings($playerid,$data)
+	{
+
+		$this->db->where('playerid', $playerid);
+
+		$this->db->update('ratings', $data);
+
+	}
+
+	function delete_game($id)
 	{
 		//delete the remaining_game
-		//$this->db->delete('remaining_games', array('id' => $row->id));
+		$this->db->delete('remaining_games', array('id' => $id));
 	}
 	
 	//find two ranrom players in the ratings table. TODO: select two random rating's
@@ -196,7 +212,7 @@ class Querydb extends CI_Model {
 			//delete the remaining_game
 			//$this->db->delete('remaining_games', array('id' => $row->id));
 
-			$data["currentgamedata"]["key"]		 	= $row->key;
+			$data["currentgamedata"]["key"][1]		 	= $row->vkey;
 
 
 			$sql1 									= 'SELECT goal FROM ratings WHERE playerid = ?';

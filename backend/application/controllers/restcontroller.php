@@ -4,7 +4,7 @@ class Restcontroller extends CI_Controller {
 
 	// Testing the elologic model
 	//
-	public function test()
+/*	public function test()
 	{
 		$this->load->model('Elologic');
 
@@ -12,7 +12,7 @@ class Restcontroller extends CI_Controller {
 
 		echo $this->Elologic->getRating1() . ", ";
 		echo $this->Elologic->getRating2();
-	}
+	}*/
 
 
 	// Get encryption, and selected answer strings as two http requests.
@@ -34,11 +34,11 @@ class Restcontroller extends CI_Controller {
 
 		}
 
-		$player_won =			intval($player_won);
+		//$player_won =			(int)$player_won;
 
-		if($player_won !== 0 || $player_won !== 1 || $player_won !== 2)
+		if($player_won != "0" && $player_won != "1" && $player_won != "2")
 		{
-			echo "inproper post value: game result".$player_won;//todo: use header
+			header("HTTP/1.0 200 Improper post value");
 
 			ob_end_flush(); // php.net:'send the contents of the topmost output buffer and turn this output buffer off'
     		//ob_flush();     // for an unknown reason, need another flush
@@ -54,7 +54,7 @@ class Restcontroller extends CI_Controller {
 		if($data === 0)
 		{
 
-			echo "Couldn't find this game. Please refresh.";//todo: use header
+			header("HTTP/1.0 200 Couldn't find game. Please refresh.");
 
 			ob_end_flush(); // php.net:'send the contents of the topmost output buffer and turn this output buffer off'
     		//ob_flush();     // for an unknown reason, need another flush
@@ -63,33 +63,44 @@ class Restcontroller extends CI_Controller {
 
 		}
 
+		$this->Querydb->delete_game($data["remaininggame"][1]);
+
 		echo "thanks";
 
-		//ob_end_flush(); // php.net:'send the contents of the topmost output buffer and turn this output buffer off'
+		ob_end_flush(); // php.net:'send the contents of the topmost output buffer and turn this output buffer off'
     	//ob_flush();     // for an unknown reason, need another flush
 
 		//get rating by player id
 		$player_data =			$this->Querydb->get_ratings_by_playerid($data["playerid"][1],$data["playerid"][2]);
 
+		if($player_data === 0)
+		{
+			exit();
+		}
+
 		$this->load->model('Elologic');
 
 		$this->Elologic->setResult($player_won,$player_data["rating"][1],$player_data["rating"][2]);//0 is tie, 1 is player one, 2 is player two
 
-		echo $this->Elologic->getRating1() . ", ";
-		echo $this->Elologic->getRating2();
+		$rating1 =				$this->Elologic->getRating1();
+		$rating2 =				$this->Elologic->getRating2();
 
-		ob_end_flush(); // php.net:'send the contents of the topmost output buffer and turn this output buffer off'
-    	//ob_flush();     // for an unknown reason, need another flush
+    	//update ratings with new scores
+    	$update_data =			array(
+    								'rating'	=>	$rating1
+    							);
 
-		//if success
+    	$this->Querydb->update_ratings($player_data["playerid"][1],$update_data);
 
-				//calculate elo
+    	$update_data2 =			array(
+    								'rating'	=>	$rating2
+    							);
 
-				//delete remaining_game
+    	$this->Querydb->update_ratings($player_data["playerid"][2],$update_data2);
 
-				//update ratings table
 
-				//add one to the a counter of total games played
+    	//TODO add data to game log
+    	//date("Y-m-d H:i:s")
 
 	}
 
@@ -102,10 +113,12 @@ class Restcontroller extends CI_Controller {
 		if ( ! $this->input->valid_ip($ip_address))
 		{
 		    
-		    echo 'Your ip address is not valid. Sorry about that.';
+		    header("HTTP/1.0 200 Your ip address is not valid. Sorry about that.");
 
 			ob_end_flush(); // php.net:'send the contents of the topmost output buffer and turn this output buffer off'
     		//ob_flush();     // for an unknown reason, need another flush
+
+    		
 
 		}
 
@@ -164,17 +177,18 @@ class Restcontroller extends CI_Controller {
 
 				$msg = 					rand(1,9999).'42'.rand(1,9999).$date_string.rand(1,9999).'labsrus';
 
-				$encrypted_string = 	$this->encrypt->encode($msg);
+				$encrypted_string = 	$this->encrypt->sha1($msg);
 
-				$encrypted_string = 	urlencode($encrypted_string);
+				//$encrypted_string =		stripslashes($encrypted_string);
 
-				log_message('debug', 'encrypted string:'.$encrypted_string);
+				//$encrypted_string = 	urlencode($encrypted_string);
+				//log_message('debug', 'encrypted string:'.$encrypted_string);
 
 				$goal_string_1 = 		$this->Querydb->select_goal_by_id($rand_playerid_1);
-				log_message('debug', 'gs1:'.$goal_string_1);
+				//log_message('debug', 'gs1:'.$goal_string_1);
 
 				$goal_string_2 = 		$this->Querydb->select_goal_by_id($rand_playerid_2);
-				log_message('debug', 'gs2:'.$goal_string_2);
+				//log_message('debug', 'gs2:'.$goal_string_2);
 
 				//echo the game data back to the front end
 				//
@@ -188,7 +202,7 @@ class Restcontroller extends CI_Controller {
 				   'ip' =>				$ip_address,
 				   'player1_id' =>		$rand_playerid_1,
 				   'player2_id'	=>		$rand_playerid_2,
-				   'key' =>				$encrypted_string,
+				   'vkey' =>				$encrypted_string,
 				   'time' =>			date("Y-m-d H:i:s")
 				);
 
@@ -230,9 +244,11 @@ class Restcontroller extends CI_Controller {
 						//
 						$msg = 					rand(1,9999).'42'.rand(1,9999).$date_string.rand(1,9999).'labsrus';
 
-						$encrypted_string = 	$this->encrypt->encode($msg);
+						$encrypted_string = 	$this->encrypt->sha1($msg);
 
-						$encrypted_string = 	urlencode($encrypted_string);
+						//$encrypted_string =		stripslashes($encrypted_string);
+
+						//$encrypted_string = 	urlencode($encrypted_string);
 
 						//log_message('debug', 'encrypted string:'.$encrypted_string);
 
@@ -240,7 +256,7 @@ class Restcontroller extends CI_Controller {
 						   'ip' =>				$ip_address,
 						   'player1_id' =>		$goal,
 						   'player2_id'	=>		$last_goal,
-						   'key' =>				$encrypted_string,
+						   'vkey' =>				$encrypted_string,
 						   'time' =>			date("Y-m-d H:i:s")
 						);
 
@@ -265,7 +281,7 @@ class Restcontroller extends CI_Controller {
 		        {
 
 			        //echo game data
-					echo '{"game_data":[{"key": "'.$game_data["currentgamedata"]["key"].'","goal1": "'.$game_data["currentgamedata"]["goal1"].'","goal2": "'.$game_data["currentgamedata"]["goal2"].'"}]}';
+					echo '{"game_data":[{"key": "'.$game_data["currentgamedata"]["key"][1].'","goal1": "'.$game_data["currentgamedata"]["goal1"].'","goal2": "'.$game_data["currentgamedata"]["goal2"].'"}]}';
 
 		        	ob_end_flush(); // php.net:'send the contents of the topmost output buffer and turn this output buffer off'
     				//ob_flush();     // for an unknown reason, need another flush
@@ -282,7 +298,7 @@ class Restcontroller extends CI_Controller {
 		        else
 		        {
 
-		        	echo "something went wrong";
+		        	header("HTTP/1.0 200 something went wrong");
 
 		        	ob_end_flush(); // php.net:'send the contents of the topmost output buffer and turn this output buffer off'
     				//ob_flush();     // for an unknown reason, need another flush
@@ -309,7 +325,7 @@ class Restcontroller extends CI_Controller {
 			    else
 			    {
 
-			    	echo "cool down";
+			    	header("HTTP/1.0 200 cool down time");
 
 			    	ob_end_flush(); // php.net:'send the contents of the topmost output buffer and turn this output buffer off'
 	    			//ob_flush();     // for an unknown reason, need another flush
@@ -377,9 +393,11 @@ class Restcontroller extends CI_Controller {
 				// create encryption key
 				//
 				$msg = 					rand(1,9999).'42'.rand(1,9999).$date_string.rand(1,9999).'labsrus';
-				$encrypted_string = 	$this->encrypt->encode($msg);
+				$encrypted_string = 	$this->encrypt->sha1($msg);
 
-				$encrypted_string = 	urlencode($encrypted_string);
+				//$encrypted_string =		stripslashes($encrypted_string);
+
+				//$encrypted_string = 	urlencode($encrypted_string);
 				//log_message('debug', 'encrypted string:'.$encrypted_string);
 
 				if($l === 2)
@@ -403,7 +421,7 @@ class Restcontroller extends CI_Controller {
 				   'ip' =>				$ip_address,
 				   'player1_id' =>		$goal,
 				   'player2_id'	=>		$last_goal,
-				   'key' =>				$encrypted_string,
+				   'vkey' =>				$encrypted_string,
 				   'time' =>			date("Y-m-d H:i:s")
 				);
 				
