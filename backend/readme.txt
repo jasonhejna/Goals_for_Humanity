@@ -24,6 +24,10 @@ This system also incorporates security considerations arrising from allowing any
 
 This system tracks all relevent data in a database.
 
+The following example urls will control game play
+http://goalsforhumanity.com/backend/selectplayers
+http://goalsforhumanity.com/backend/gameresult/019f8ab18c2a7732e179adb43484a4e485947b9b/1
+
 Using CodeIgniters
 
 

@@ -14,6 +14,11 @@ class Restcontroller extends CI_Controller {
 		echo $this->Elologic->getRating2();
 	}*/
 
+	public function new_goal()
+	{
+
+	}
+
 
 	// Get encryption, and selected answer strings as two http requests.
 	// And calculate the player's scores, then update the db with those.
@@ -38,7 +43,7 @@ class Restcontroller extends CI_Controller {
 
 		if($player_won != "0" && $player_won != "1" && $player_won != "2")
 		{
-			header("HTTP/1.0 200 Improper post value");
+			header("HTTP/1.0 555 Improper post value");
 
 			ob_end_flush(); // php.net:'send the contents of the topmost output buffer and turn this output buffer off'
     		//ob_flush();     // for an unknown reason, need another flush
@@ -54,7 +59,7 @@ class Restcontroller extends CI_Controller {
 		if($data === 0)
 		{
 
-			header("HTTP/1.0 200 Couldn't find game. Please refresh.");
+			header("HTTP/1.0 555 Couldn't find game. Please refresh.");
 
 			ob_end_flush(); // php.net:'send the contents of the topmost output buffer and turn this output buffer off'
     		//ob_flush();     // for an unknown reason, need another flush
@@ -113,12 +118,12 @@ class Restcontroller extends CI_Controller {
 		if ( ! $this->input->valid_ip($ip_address))
 		{
 		    
-		    header("HTTP/1.0 200 Your ip address is not valid. Sorry about that.");
+		    header("HTTP/1.0 555 Your ip address is not valid. Sorry about that.");
 
 			ob_end_flush(); // php.net:'send the contents of the topmost output buffer and turn this output buffer off'
     		//ob_flush();     // for an unknown reason, need another flush
 
-    		
+
 
 		}
 
@@ -298,7 +303,7 @@ class Restcontroller extends CI_Controller {
 		        else
 		        {
 
-		        	header("HTTP/1.0 200 something went wrong");
+		        	header("HTTP/1.0 555 something went wrong");
 
 		        	ob_end_flush(); // php.net:'send the contents of the topmost output buffer and turn this output buffer off'
     				//ob_flush();     // for an unknown reason, need another flush
@@ -325,7 +330,7 @@ class Restcontroller extends CI_Controller {
 			    else
 			    {
 
-			    	header("HTTP/1.0 200 cool down time");
+			    	header("HTTP/1.0 555 cool down time");
 
 			    	ob_end_flush(); // php.net:'send the contents of the topmost output buffer and turn this output buffer off'
 	    			//ob_flush();     // for an unknown reason, need another flush
