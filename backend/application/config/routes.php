@@ -40,7 +40,10 @@
 
 //$route['default_controller'] = "restcontroller/selectplayers";
 $route['selectplayers'] 	= 'restcontroller/selectplayers';
-$route['gameresult/(:any)/(:num)']		= 'restcontroller/gameresult/$1/$2';
+//$route['gameresult/(:any)/(:num)']		= 'restcontroller/gameresult/$1/$2';
+$route['gameresult']		= 'restcontroller/gameresult';
+$route['newgoal']	= 'restcontroller/newgoal';
+$route['captcharesponse']	= 'restcontroller/captcharesponse';
 $route['404_override'] 		= '';
 
 

@@ -14,18 +14,48 @@ class Restcontroller extends CI_Controller {
 		echo $this->Elologic->getRating2();
 	}*/
 
-	public function new_goal()
+	public function newgoal()
 	{
+		$goal =			$this->input->post('goal');
 
+		$this->load->helper('url');
+
+		$this->load->helper('captcha');
+
+		$vals = array(
+		    'word'	 => 'Randomstr',
+		    'img_path'	 => './captcha/',
+		    'img_url'	 => base_url().'captcha/',
+		    'font_path'	 => './system/fonts/texb.ttf',
+		    'img_width'	 => '150',
+		    'img_height' => 30,
+		    'expiration' => 7200
+		    );
+
+		$cap = create_captcha($vals);
+
+		echo $cap['image'];
+
+	}
+
+	public function captcharesponse()
+	{
+		//$captcha_response =			$this->input->post('captcharesponse');
+		//echo $captcha_response;
+		echo "asjd";
 	}
 
 
 	// Get encryption, and selected answer strings as two http requests.
 	// And calculate the player's scores, then update the db with those.
 	//
-	public function gameresult($key,$player_won)
+	public function gameresult()
 	{
 		ob_start();   // create a top output buffer 
+
+		$key =			$this->input->post('key');
+
+		$player_won =	$this->input->post('player_won');
 
 		$ip_address = $this->input->ip_address();
 
@@ -70,7 +100,7 @@ class Restcontroller extends CI_Controller {
 
 		$this->Querydb->delete_game($data["remaininggame"][1]);
 
-		echo "thanks";
+		echo 'success';
 
 		ob_end_flush(); // php.net:'send the contents of the topmost output buffer and turn this output buffer off'
     	//ob_flush();     // for an unknown reason, need another flush
@@ -197,7 +227,7 @@ class Restcontroller extends CI_Controller {
 
 				//echo the game data back to the front end
 				//
-				echo '{"game_data":[{"key": "'.$encrypted_string.'","goal1": "'.$goal_string_1.'","goal2": "'.$goal_string_2.'"}]}';
+				echo '{"key": "'.$encrypted_string.'","goal1": "'.$goal_string_1.'","goal2": "'.$goal_string_2.'"}';
 
 				ob_end_flush(); // php.net:'send the contents of the topmost output buffer and turn this output buffer off'
     			//ob_flush();     // for an unknown reason, need another flush
@@ -207,7 +237,7 @@ class Restcontroller extends CI_Controller {
 				   'ip' =>				$ip_address,
 				   'player1_id' =>		$rand_playerid_1,
 				   'player2_id'	=>		$rand_playerid_2,
-				   'vkey' =>				$encrypted_string,
+				   'vkey' =>			$encrypted_string,
 				   'time' =>			date("Y-m-d H:i:s")
 				);
 
@@ -222,6 +252,7 @@ class Restcontroller extends CI_Controller {
 				if(empty($data["remaininggoals"][1]))
 				{
 					log_message('error', 'selecting unplayed games failed');
+
 					exit();
 				}
 			
@@ -286,7 +317,8 @@ class Restcontroller extends CI_Controller {
 		        {
 
 			        //echo game data
-					echo '{"game_data":[{"key": "'.$game_data["currentgamedata"]["key"][1].'","goal1": "'.$game_data["currentgamedata"]["goal1"].'","goal2": "'.$game_data["currentgamedata"]["goal2"].'"}]}';
+			        header("Content-Type: text/html; charset=UTF-8");
+					echo '{"key": "'.$game_data["currentgamedata"]["key"][1].'","goal1": "'.$game_data["currentgamedata"]["goal1"].'","goal2": "'.$game_data["currentgamedata"]["goal2"].'"}';
 
 		        	ob_end_flush(); // php.net:'send the contents of the topmost output buffer and turn this output buffer off'
     				//ob_flush();     // for an unknown reason, need another flush
@@ -330,7 +362,7 @@ class Restcontroller extends CI_Controller {
 			    else
 			    {
 
-			    	header("HTTP/1.0 555 cool down time");
+			    	header("HTTP/1.0 555 all games played");//cool down time
 
 			    	ob_end_flush(); // php.net:'send the contents of the topmost output buffer and turn this output buffer off'
 	    			//ob_flush();     // for an unknown reason, need another flush
@@ -359,7 +391,7 @@ class Restcontroller extends CI_Controller {
 		if($data === 'fail')
 		{
 
-			echo "all games played";
+			header("HTTP/1.0 555 all games played");
 
 			ob_end_flush(); // php.net:'send the contents of the topmost output buffer and turn this output buffer off'
     		//ob_flush();     // for an unknown reason, need another flush
@@ -415,7 +447,7 @@ class Restcontroller extends CI_Controller {
 
 					//echo a game to be played
 					//
-					echo '{"game_data":[{"key": "'.$encrypted_string.'","goal1": "'.$last_goal_text.'","goal2": "'.$goal_text.'"}]}';
+					echo '{"key" : "'.$encrypted_string.'", "goal1" : "'.$last_goal_text.'", "goal2" : "'.$goal_text.'"}';
 
 					ob_end_flush(); // php.net:'send the contents of the topmost output buffer and turn this output buffer off'
     				//ob_flush();     // for an unknown reason, need another flush
@@ -426,7 +458,7 @@ class Restcontroller extends CI_Controller {
 				   'ip' =>				$ip_address,
 				   'player1_id' =>		$goal,
 				   'player2_id'	=>		$last_goal,
-				   'vkey' =>				$encrypted_string,
+				   'vkey' =>			$encrypted_string,
 				   'time' =>			date("Y-m-d H:i:s")
 				);
 				
