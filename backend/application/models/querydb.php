@@ -2,6 +2,11 @@
 
 class Querydb extends CI_Model {
 
+	function insert_new_goal($new_goal_data)
+	{
+		$this->db->insert('new_goal', $new_goal_data);
+	}
+
 	function check_remaining_game($ip,$key)
 	{
 
@@ -26,6 +31,33 @@ class Querydb extends CI_Model {
 			return 0;
 		}
 		
+	}
+
+	function select_like_goals($word_string)
+	{
+		$sql 									= 'SELECT goal FROM ratings WHERE '.$word_string.' LIMIT 0, 15';
+
+		$query 									= $this->db->query($sql, array($word_string));
+
+		log_message('debug', 'goal_query_string:'.$word_string);
+
+		if ($query->num_rows() > 0)
+		{
+			foreach ($query->result() as $row)
+			{
+				//$row = $query->row();
+				$data["matching_goal"][] = $row->goal;
+			}
+			$query->free_result();
+
+			return $data;
+		}
+		else
+		{
+			$query->free_result();
+
+			return 0;
+		}
 	}
 
 	function get_ratings_by_playerid($player1_id,$player2_id)

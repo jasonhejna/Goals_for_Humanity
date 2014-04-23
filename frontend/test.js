@@ -12,6 +12,33 @@ $( document ).ready(function() {
 //getdata class
 function getdata(){
 
+this.eventlistener = function(){
+
+  $("player1").click(function(){
+    getdata.gameresult(1);
+  });
+
+  $("player2").click(function(){
+    getdata.gameresult(2);
+  });
+
+  $("tiegame").click(function(){
+    getdata.gameresult(0);
+  });
+
+  $("newgoal input:submit").click(function(){
+    var goal_string =   $("newgoal #new_goal").val();
+    console.log("goal string:"+goal_string);
+    getdata.newgoal(goal_string);
+  });
+
+  $("captchaform input:submit").click(function(){
+    var captcha =       $("captchaform #captcha_response").val();
+    getdata.captcharesponse(captcha);
+  });
+
+}
+
 this.selectplayers = function(){
 
   $.ajax({
@@ -44,25 +71,9 @@ this.selectplayers = function(){
 
 }
 
-this.eventlistener = function(){
-
-  $("player1").click(function(){
-    getdata.gameresult(1);
-  });
-
-  $("player2").click(function(){
-    getdata.gameresult(2);
-  });
-
-  $("tiegame").click(function(){
-    getdata.gameresult(0);
-  });
-
-}
-
 this.gameresult = function(goalid){
 
-  $.ajax({
+$.ajax({
   type: "POST",
   url: "http://localhost/backend/gameresult",
   data: {"key":this.key,"player_won":goalid},
@@ -78,6 +89,59 @@ this.gameresult = function(goalid){
   }
 });
 
+}
+
+this.newgoal = function(goal){
+
+$('newgoal').hide();
+
+$.ajax({
+  type: "POST",
+  url: "http://localhost/backend/newgoal",
+  data: {"goal":goal},
+  success: function(data, textStatus, json) {
+
+    console.log(data);
+
+    json = JSON.parse(data);
+
+    $("captchaform").prepend('<img src="'+json.captchaUrl+'" width="160" height="30">');
+
+    $("captchaform").show();
+
+    //console.log(json.foundGoals[0]);
+
+    if(json.foundGoals.goal0 != 'undefined' && json.foundGoals.goal0 !== null)
+    {
+      $("captchaform").append("<br/><div>Is this the goal you're looking for? If not then fill out the captcha to complete goal submission.</div>");
+      
+      for (var i = json.foundGoals.length - 1; i >= 0; i--) {
+        $("captchaform").append('<br/><div>'+json.foundGoals[i][i]+'</div>');
+      };
+    }
+
+  },
+  error: function(json, textStatus, errorThrown) {
+    console.log(textStatus, errorThrown);
+  }
+});
+
+}
+
+this.captcharesponse = function(captcha){
+$.ajax({
+  type: "POST",
+  url: "http://localhost/backend/verifycaptcha",
+  data: {"user_captcha":captcha},
+  success: function(data, textStatus, json) {
+
+    console.log(data);
+
+  },
+  error: function(json, textStatus, errorThrown) {
+    console.log(textStatus, errorThrown);
+  }
+});
 }
 
 }

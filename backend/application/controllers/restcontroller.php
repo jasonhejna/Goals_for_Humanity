@@ -16,33 +16,196 @@ class Restcontroller extends CI_Controller {
 
 	public function newgoal()
 	{
+
+		ob_start();   // create a top output buffer 
+
+		$ip_address = $this->input->ip_address();
+
+		if ( ! $this->input->valid_ip($ip_address))
+		{
+		    
+		    echo 'Your ip address is not valid. Sorry about that.';//todo: use header
+
+			ob_end_flush(); // php.net:'send the contents of the topmost output buffer and turn this output buffer off'
+    		//ob_flush();     // for an unknown reason, need another flush
+
+		}
+
 		$goal =			$this->input->post('goal');
+
+		//check goal for 256 chars, has words, and those words don't exceed 30 characters
+		$goal_char_count =		strlen($goal);
+
+		if($goal_char_count > 256)
+		{
+			header("HTTP/1.0 555 Goal must be less than 256 characters");
+
+			ob_end_flush();
+
+			exit();
+		}
+
+		if($goal_char_count < 5)
+		{
+			header("HTTP/1.0 555 Goal must be greater than five characters");
+
+			ob_end_flush();
+
+			exit();
+		}
+
+		$goal_words =			explode(" ", $goal);
+
+		$ir=0;
+
+		foreach ($goal_words as $key => $word) {
+
+			log_message('debug', 'goal_words:'.$word);
+
+			$word_char_count =		strlen($word);
+
+			if($word_char_count > 56){
+				header("HTTP/1.0 555 Goal can't have words with more than 56 characters");
+
+				ob_end_flush();
+
+				exit();
+			}
+
+			if($ir===0 && $word_char_count > 3)
+			{
+				$goal_search_and =		"goal LIKE '%".$word."%'";
+				$goal_search_or	=		"goal LIKE '%".$word."%'";
+				$ir++;
+			}
+			elseif($word_char_count > 3)
+			{
+				$goal_search_and .=		" AND goal LIKE '%".$word."%'";
+				$goal_search_or .=		" OR goal LIKE '%".$word."%'";
+				$ir++;
+			}
+
+		}
+
+		//generate a captcha
+		$rand_chars = substr(uniqid('', true), -5);
 
 		$this->load->helper('url');
 
 		$this->load->helper('captcha');
 
 		$vals = array(
-		    'word'	 => 'Randomstr',
+		    'word'	 => $rand_chars,
 		    'img_path'	 => './captcha/',
 		    'img_url'	 => base_url().'captcha/',
 		    'font_path'	 => './system/fonts/texb.ttf',
-		    'img_width'	 => '150',
+		    'img_width'	 => '160',
 		    'img_height' => 30,
 		    'expiration' => 7200
 		    );
 
 		$cap = create_captcha($vals);
 
-		echo $cap['image'];
+		$subject =			$cap['image'];
+		$pattern =			'~["](.+?)["]~';
+		preg_match($pattern, $subject, $matches, PREG_OFFSET_CAPTURE, 3);
+
+		//start looking for matching goals
+		$this->load->model('Querydb');
+		
+		//select like goals
+		$goal_and_data =		$this->Querydb->select_like_goals($goal_search_and);
+
+		$goal_or_data =			$this->Querydb->select_like_goals($goal_search_or);
+
+		if($goal_and_data !== 0 && $goal_or_data !== 0)
+		{	
+			log_message('debug', 'both_queries true:');
+			$found_goals_json =		"";
+			$ie=0;
+			foreach ($goal_and_data["matching_goal"] as $gkey => $matching_goal) {
+				$found_goals_json .= '{"'.$ie.'":"'.$matching_goal.'"},';
+				$ie++;
+			}
+
+			foreach ($goal_or_data["matching_goal"] as $g2key => $matching_goal2) {	
+				log_message('debug', 'matching_goal2_foreach:'.$matching_goal2);
+				if(!in_array($matching_goal, $goal_and_data["matching_goal"])) {//TODO: this is not working
+					log_message('debug', 'matching_goal2_success'.$matching_goal2);
+					$found_goals_json .= '{"'.$ie.'":"'.$matching_goal2.'"},';
+					$ie++;
+				}
+			}
+
+			$found_goals_json = 		rtrim($found_goals_json, ',');
+		}
+
+		if($goal_and_data !== 0 && $goal_or_data === 0)
+		{
+			$found_goals_json =		"";
+			$ie=0;
+			foreach ($goal_and_data["matching_goal"] as $gkey => $matching_goal) {
+				$found_goals_json .= '{"'.$ie.'":"'.$matching_goal.'"},';
+				$ie++;
+			}
+
+			$found_goals_json = 		rtrim($found_goals_json, ',');
+		}
+
+		if($goal_and_data === 0 && $goal_or_data !== 0)
+		{
+			$found_goals_json =		"";
+			$ie=0;
+			foreach ($goal_or_data["matching_goal"] as $g2key => $matching_goal2) {	
+				$found_goals_json .= '{"'.$ie.'":"'.$matching_goal2.'"},';
+				$ie++;
+			}
+
+			$found_goals_json = 		rtrim($found_goals_json, ',');
+		}
+
+
+
+		if($goal_and_data === 0 && $goal_or_data === 0)
+		{
+			echo '{"captchaUrl":"'.$matches[1][0].'"}';
+
+			ob_end_flush();
+
+			exit();
+		}
+
+
+
+		echo '{"captchaUrl":"'.$matches[1][0].'","foundGoals":['.$found_goals_json.']}';
+
+		ob_end_flush();
+		
+		//insert data into the db
+		$this->load->model('Querydb');
+
+		log_message('debug', 'goal_str:'.$goal);
+
+		$new_goal = array(
+				'captcha_code'	=>	$rand_chars,
+				'ip_address'	=>	$ip_address,
+				'goal'			=>	$goal,
+				'status'		=>	1
+			);
+
+		$this->Querydb->insert_new_goal($new_goal);
 
 	}
 
-	public function captcharesponse()
+	public function verifycaptcha()
 	{
-		//$captcha_response =			$this->input->post('captcharesponse');
+		ob_start();   // create a top output buffer 
+
+		$captcharesponse =			$this->input->post('user_captcha');
 		//echo $captcha_response;
-		echo "asjd";
+		echo "success";
+
+		ob_end_flush();
 	}
 
 
@@ -152,8 +315,6 @@ class Restcontroller extends CI_Controller {
 
 			ob_end_flush(); // php.net:'send the contents of the topmost output buffer and turn this output buffer off'
     		//ob_flush();     // for an unknown reason, need another flush
-
-
 
 		}
 
@@ -317,7 +478,7 @@ class Restcontroller extends CI_Controller {
 		        {
 
 			        //echo game data
-			        header("Content-Type: text/html; charset=UTF-8");
+			        //header("Content-Type: text/html; charset=UTF-8");
 					echo '{"key": "'.$game_data["currentgamedata"]["key"][1].'","goal1": "'.$game_data["currentgamedata"]["goal1"].'","goal2": "'.$game_data["currentgamedata"]["goal2"].'"}';
 
 		        	ob_end_flush(); // php.net:'send the contents of the topmost output buffer and turn this output buffer off'

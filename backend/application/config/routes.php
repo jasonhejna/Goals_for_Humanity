@@ -43,7 +43,7 @@ $route['selectplayers'] 	= 'restcontroller/selectplayers';
 //$route['gameresult/(:any)/(:num)']		= 'restcontroller/gameresult/$1/$2';
 $route['gameresult']		= 'restcontroller/gameresult';
 $route['newgoal']	= 'restcontroller/newgoal';
-$route['captcharesponse']	= 'restcontroller/captcharesponse';
+$route['verifycaptcha']	= 'restcontroller/verifycaptcha';
 $route['404_override'] 		= '';
 
 

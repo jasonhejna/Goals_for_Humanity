@@ -67,3 +67,6 @@ tiegame {
 	background-color: gray;
 	color:#FFF;
 }
+captchaform {
+	display: none;
+}
