@@ -24,10 +24,11 @@ class Restcontroller extends CI_Controller {
 		if ( ! $this->input->valid_ip($ip_address))
 		{
 		    
-		    echo 'Your ip address is not valid. Sorry about that.';//todo: use header
+		    header("Your ip address is not valid. Sorry about that.");
 
-			ob_end_flush(); // php.net:'send the contents of the topmost output buffer and turn this output buffer off'
-    		//ob_flush();     // for an unknown reason, need another flush
+			ob_end_flush();
+
+			exit();
 
 		}
 
@@ -35,15 +36,6 @@ class Restcontroller extends CI_Controller {
 
 		//check goal for 256 chars, has words, and those words don't exceed 30 characters
 		$goal_char_count =		strlen($goal);
-
-		if($goal_char_count > 256)
-		{
-			header("HTTP/1.0 555 Goal must be less than 256 characters");
-
-			ob_end_flush();
-
-			exit();
-		}
 
 		if($goal_char_count < 5)
 		{
@@ -54,9 +46,16 @@ class Restcontroller extends CI_Controller {
 			exit();
 		}
 
-		$goal_words =			explode(" ", $goal);
+		if($goal_char_count > 256)
+		{
+			header("HTTP/1.0 555 Goal must be less than 256 characters");
 
-		$ir=0;
+			ob_end_flush();
+
+			exit();
+		}
+
+		$goal_words =			explode(" ", $goal);
 
 		foreach ($goal_words as $key => $word) {
 
@@ -64,27 +63,28 @@ class Restcontroller extends CI_Controller {
 
 			$word_char_count =		strlen($word);
 
-			if($word_char_count > 56){
-				header("HTTP/1.0 555 Goal can't have words with more than 56 characters");
+			if($word_char_count > 22){
+				header("HTTP/1.0 555 Goal can't have words with more than 22 characters");
 
 				ob_end_flush();
 
 				exit();
 			}
 
-			if($ir===0 && $word_char_count > 3)
-			{
-				$goal_search_and =		"goal LIKE '%".$word."%'";
-				$goal_search_or	=		"goal LIKE '%".$word."%'";
-				$ir++;
-			}
-			elseif($word_char_count > 3)
-			{
-				$goal_search_and .=		" AND goal LIKE '%".$word."%'";
-				$goal_search_or .=		" OR goal LIKE '%".$word."%'";
-				$ir++;
-			}
+		}
 
+		$this->load->model('Querydb');
+
+		$data =			$this->Querydb->select_goals_boolean("'\"".$goal."\"'");
+
+		if(isset($data["matching_goal"][0]))
+		{
+
+			header("HTTP/1.0 555 We already have that goal");
+
+			ob_end_flush();
+
+			exit();
 		}
 
 		//generate a captcha
@@ -109,88 +109,36 @@ class Restcontroller extends CI_Controller {
 		$subject =			$cap['image'];
 		$pattern =			'~["](.+?)["]~';
 		preg_match($pattern, $subject, $matches, PREG_OFFSET_CAPTURE, 3);
+		$captcha_url= $matches[1][0];
 
-		//start looking for matching goals
-		$this->load->model('Querydb');
-		
-		//select like goals
-		$goal_and_data =		$this->Querydb->select_like_goals($goal_search_and);
+		$data =			$this->Querydb->select_goals_boolean("'".$goal."'");
 
-		$goal_or_data =			$this->Querydb->select_like_goals($goal_search_or);
-
-		if($goal_and_data !== 0 && $goal_or_data !== 0)
-		{	
-			log_message('debug', 'both_queries true:');
-			$found_goals_json =		"";
-			$ie=0;
-			foreach ($goal_and_data["matching_goal"] as $gkey => $matching_goal) {
-				$found_goals_json .= '{"'.$ie.'":"'.$matching_goal.'"},';
-				$ie++;
-			}
-
-			foreach ($goal_or_data["matching_goal"] as $g2key => $matching_goal2) {	
-				log_message('debug', 'matching_goal2_foreach:'.$matching_goal2);
-				if(!in_array($matching_goal, $goal_and_data["matching_goal"])) {//TODO: this is not working
-					log_message('debug', 'matching_goal2_success'.$matching_goal2);
-					$found_goals_json .= '{"'.$ie.'":"'.$matching_goal2.'"},';
-					$ie++;
-				}
-			}
-
-			$found_goals_json = 		rtrim($found_goals_json, ',');
-		}
-
-		if($goal_and_data !== 0 && $goal_or_data === 0)
+		if($data !== 0)
 		{
-			$found_goals_json =		"";
+			$found_goals_json = '';
 			$ie=0;
-			foreach ($goal_and_data["matching_goal"] as $gkey => $matching_goal) {
+			foreach($data["matching_goal"] as $key => $matching_goal) {
 				$found_goals_json .= '{"'.$ie.'":"'.$matching_goal.'"},';
 				$ie++;
 			}
 
 			$found_goals_json = 		rtrim($found_goals_json, ',');
+			
+			echo '{"captchaUrl":"'.$captcha_url.'","foundGoals":['.$found_goals_json.']}';
 		}
-
-		if($goal_and_data === 0 && $goal_or_data !== 0)
+		else
 		{
-			$found_goals_json =		"";
-			$ie=0;
-			foreach ($goal_or_data["matching_goal"] as $g2key => $matching_goal2) {	
-				$found_goals_json .= '{"'.$ie.'":"'.$matching_goal2.'"},';
-				$ie++;
-			}
-
-			$found_goals_json = 		rtrim($found_goals_json, ',');
+			echo '{"captchaUrl":"'.$captcha_url.'","foundGoals":"null"}';
 		}
-
-
-
-		if($goal_and_data === 0 && $goal_or_data === 0)
-		{
-			echo '{"captchaUrl":"'.$matches[1][0].'"}';
-
-			ob_end_flush();
-
-			exit();
-		}
-
-
-
-		echo '{"captchaUrl":"'.$matches[1][0].'","foundGoals":['.$found_goals_json.']}';
 
 		ob_end_flush();
-		
+			
 		//insert data into the db
-		$this->load->model('Querydb');
-
-		log_message('debug', 'goal_str:'.$goal);
-
 		$new_goal = array(
-				'captcha_code'	=>	$rand_chars,
-				'ip_address'	=>	$ip_address,
-				'goal'			=>	$goal,
-				'status'		=>	1
+			'captcha_code'	=>	$rand_chars,
+			'ip_address'	=>	$ip_address,
+			'goal'			=>	$goal,
+			'status'		=>	1
 			);
 
 		$this->Querydb->insert_new_goal($new_goal);
@@ -199,10 +147,24 @@ class Restcontroller extends CI_Controller {
 
 	public function verifycaptcha()
 	{
-		ob_start();   // create a top output buffer 
+		ob_start();
 
-		$captcharesponse =			$this->input->post('user_captcha');
-		//echo $captcha_response;
+		$ip_address = $this->input->ip_address();
+
+		if ( ! $this->input->valid_ip($ip_address))
+		{
+			header("Your ip address is not valid. Sorry about that.");
+
+			ob_end_flush();
+
+			exit();
+		}
+
+		$captcharesponse =			$this->input->post('userDefinedCaptcha');
+
+		//TODO verify it's in the new_goal table
+
+
 		echo "success";
 
 		ob_end_flush();
@@ -216,21 +178,22 @@ class Restcontroller extends CI_Controller {
 	{
 		ob_start();   // create a top output buffer 
 
-		$key =			$this->input->post('key');
-
-		$player_won =	$this->input->post('player_won');
-
 		$ip_address = $this->input->ip_address();
 
 		if ( ! $this->input->valid_ip($ip_address))
 		{
 		    
-		    echo 'Your ip address is not valid. Sorry about that.';//todo: use header
+		    header("Your ip address is not valid. Sorry about that.");
 
-			ob_end_flush(); // php.net:'send the contents of the topmost output buffer and turn this output buffer off'
-    		//ob_flush();     // for an unknown reason, need another flush
+			ob_end_flush();
+
+			exit();
 
 		}
+
+		$key =			$this->input->post('key');
+
+		$player_won =	$this->input->post('player_won');
 
 		//$player_won =			(int)$player_won;
 
@@ -313,8 +276,9 @@ class Restcontroller extends CI_Controller {
 		    
 		    header("HTTP/1.0 555 Your ip address is not valid. Sorry about that.");
 
-			ob_end_flush(); // php.net:'send the contents of the topmost output buffer and turn this output buffer off'
-    		//ob_flush();     // for an unknown reason, need another flush
+			ob_end_flush();
+
+			exit();
 
 		}
 

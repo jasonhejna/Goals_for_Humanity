@@ -33,13 +33,12 @@ class Querydb extends CI_Model {
 		
 	}
 
-	function select_like_goals($word_string)
+	function select_goals_boolean($goal)
 	{
-		$sql 									= 'SELECT goal FROM ratings WHERE '.$word_string.' LIMIT 0, 15';
+		//SELECT goal FROM ratings WHERE MATCH (goal) AGAINST ('Explore the Universe.' IN BOOLEAN MODE);
+		$sql 									= 'SELECT goal FROM ratings WHERE MATCH (goal) AGAINST (? IN BOOLEAN MODE)';
 
-		$query 									= $this->db->query($sql, array($word_string));
-
-		log_message('debug', 'goal_query_string:'.$word_string);
+		$query 									= $this->db->query($sql, array($goal));
 
 		if ($query->num_rows() > 0)
 		{

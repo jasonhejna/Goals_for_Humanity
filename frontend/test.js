@@ -111,7 +111,7 @@ $.ajax({
 
     //console.log(json.foundGoals[0]);
 
-    if(json.foundGoals.goal0 != 'undefined' && json.foundGoals.goal0 !== null)
+    if(json.foundGoals != 'null')
     {
       $("captchaform").append("<br/><div>Is this the goal you're looking for? If not then fill out the captcha to complete goal submission.</div>");
       
@@ -123,6 +123,7 @@ $.ajax({
   },
   error: function(json, textStatus, errorThrown) {
     console.log(textStatus, errorThrown);
+    alert(errorThrown);
   }
 });
 
