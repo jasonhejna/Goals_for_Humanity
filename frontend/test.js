@@ -130,13 +130,26 @@ $.ajax({
 }
 
 this.captcharesponse = function(captcha){
+  console.log("user_captcha_response:"+captcha)
 $.ajax({
   type: "POST",
   url: "http://localhost/backend/verifycaptcha",
-  data: {"user_captcha":captcha},
+  data: {"userDefinedCaptcha":captcha},
   success: function(data, textStatus, json) {
 
     console.log(data);
+
+    json = JSON.parse(data);
+
+    if(json.success == 1){
+      alert("congratulations! Your goal submission was successfull. An admin will now review your submission.");
+      $("captchaform").remove();
+    }
+    else if(json.success == 0){
+      $("captchaform img").remove();
+      $("captchaform").prepend('<img src="'+json.captchaUrl+'" width="160" height="30">');
+      alert("you have a new captcha to fill out");
+    }
 
   },
   error: function(json, textStatus, errorThrown) {

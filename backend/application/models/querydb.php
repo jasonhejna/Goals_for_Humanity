@@ -33,6 +33,72 @@ class Querydb extends CI_Model {
 		
 	}
 
+	function select_exact_goal($table,$goal)
+	{
+		$sql 									= "SELECT goal FROM ".$table." WHERE goal LIKE ? LIMIT 0, 1";
+
+		$query 									= $this->db->query($sql, array($goal));
+
+		if ($query->num_rows() > 0)
+		{
+			foreach ($query->result() as $row)
+			{
+				//$row = $query->row();
+				$data["matching_goal"][] = $row->goal;
+			}
+			$query->free_result();
+
+			return $data;
+		}
+		else
+		{
+			$query->free_result();
+
+			return 0;
+		}
+	}
+
+	function update_new_goal_status_confirmed($captcha_code,$ip_address)
+	{
+
+		//select the new_goal goal by it's captcha
+
+		$array 			= array('captcha_code' => $captcha_code, 'ip_address' => $ip_address);
+
+		$this->db->where($array);
+
+		$data 			= array('status' => '2');
+
+		
+
+		$this->db->update('new_goal', $data);
+
+		//$this->db->trans_complete();
+
+		$affected_rows	= $this->db->affected_rows();
+
+		return $affected_rows;
+
+	}
+
+	function update_new_goal_captcha_code($captcha_code,$ip_address)
+	{
+		$array 			= array('ip_address' => $ip_address);
+
+		$this->db->where($array);
+
+		$data 			= array('captcha_code'=>$captcha_code);
+
+		$this->db->update('new_goal', $data);
+
+		$this->db->trans_complete();
+
+		if ($this->db->trans_status() === FALSE)
+		{
+		    return 0;
+		}
+	}
+
 	function select_goals_boolean($goal)
 	{
 		//SELECT goal FROM ratings WHERE MATCH (goal) AGAINST ('Explore the Universe.' IN BOOLEAN MODE);

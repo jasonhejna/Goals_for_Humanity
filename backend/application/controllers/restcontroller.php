@@ -55,7 +55,9 @@ class Restcontroller extends CI_Controller {
 			exit();
 		}
 
-		$goal_words =			explode(" ", $goal);
+		$goal					= preg_replace('!\s+!', ' ', $goal);//replace multiple space with single space
+
+		$goal_words				= explode(" ", $goal);
 
 		foreach ($goal_words as $key => $word) {
 
@@ -75,12 +77,29 @@ class Restcontroller extends CI_Controller {
 
 		$this->load->model('Querydb');
 
-		$data =			$this->Querydb->select_goals_boolean("'\"".$goal."\"'");
+		$goal_alpha_numeric = preg_replace('/[^a-z0-9]+/i', '%', $goal);
+
+		$data				= $this->Querydb->select_exact_goal('ratings',$goal_alpha_numeric);
+
+		if(isset($data["matching_goal"][0]))
+		{
+			log_message('debug', 'quotes_match:'.$data["matching_goal"][0]);
+			
+			header("HTTP/1.0 555 We already have your goal");
+
+			ob_end_flush();
+
+			exit();
+		}
+
+		$data				= $this->Querydb->select_exact_goal('new_goal',$goal_alpha_numeric);
 
 		if(isset($data["matching_goal"][0]))
 		{
 
-			header("HTTP/1.0 555 We already have that goal");
+			//log_message('debug', 'quotes_match2:'.$data["matching_goal"][0]);
+
+			header("HTTP/1.0 555 We already have your goal");
 
 			ob_end_flush();
 
@@ -88,28 +107,8 @@ class Restcontroller extends CI_Controller {
 		}
 
 		//generate a captcha
-		$rand_chars = substr(uniqid('', true), -5);
-
-		$this->load->helper('url');
-
-		$this->load->helper('captcha');
-
-		$vals = array(
-		    'word'	 => $rand_chars,
-		    'img_path'	 => './captcha/',
-		    'img_url'	 => base_url().'captcha/',
-		    'font_path'	 => './system/fonts/texb.ttf',
-		    'img_width'	 => '160',
-		    'img_height' => 30,
-		    'expiration' => 7200
-		    );
-
-		$cap = create_captcha($vals);
-
-		$subject =			$cap['image'];
-		$pattern =			'~["](.+?)["]~';
-		preg_match($pattern, $subject, $matches, PREG_OFFSET_CAPTURE, 3);
-		$captcha_url= $matches[1][0];
+		$captcha_code			= substr(uniqid('', true), -5);
+		$captcha_url			= $this->make_captch_image($captcha_code);
 
 		$data =			$this->Querydb->select_goals_boolean("'".$goal."'");
 
@@ -123,7 +122,7 @@ class Restcontroller extends CI_Controller {
 			}
 
 			$found_goals_json = 		rtrim($found_goals_json, ',');
-			
+
 			echo '{"captchaUrl":"'.$captcha_url.'","foundGoals":['.$found_goals_json.']}';
 		}
 		else
@@ -135,7 +134,7 @@ class Restcontroller extends CI_Controller {
 			
 		//insert data into the db
 		$new_goal = array(
-			'captcha_code'	=>	$rand_chars,
+			'captcha_code'	=>	$captcha_code,
 			'ip_address'	=>	$ip_address,
 			'goal'			=>	$goal,
 			'status'		=>	1
@@ -160,16 +159,35 @@ class Restcontroller extends CI_Controller {
 			exit();
 		}
 
-		$captcharesponse =			$this->input->post('userDefinedCaptcha');
+		$captcharesponse			= $this->input->post('userDefinedCaptcha');
 
 		//TODO verify it's in the new_goal table
+		$this->load->model('Querydb');
 
+		$works 						= $this->Querydb->update_new_goal_status_confirmed($captcharesponse,$ip_address);//TODO not working
+log_message('debug', 'at least we got this far:'.$works);
+		//goal found from captcha code response, and ip_address
+		if($works === 1)
+		{
+			echo '{"success":"1"}';
 
-		echo "success";
+			ob_end_flush();
+
+			exit();
+		}
+		//goal not found
+log_message('debug', 'at least we got this far:aftersuccess');
+		$captcha_code			= substr(uniqid('', true), -5);
+		$captcha_url			= $this->make_captch_image($captcha_code);
+
+		echo '{"success":"0","captchaUrl":"'.$captcha_url.'"}';
 
 		ob_end_flush();
-	}
 
+		//update new_goal table with new captcha code
+		$this->Querydb->update_new_goal_captcha_code($captcha_code,$ip_address);
+
+	}
 
 	// Get encryption, and selected answer strings as two http requests.
 	// And calculate the player's scores, then update the db with those.
@@ -574,8 +592,7 @@ class Restcontroller extends CI_Controller {
 					//
 					echo '{"key" : "'.$encrypted_string.'", "goal1" : "'.$last_goal_text.'", "goal2" : "'.$goal_text.'"}';
 
-					ob_end_flush(); // php.net:'send the contents of the topmost output buffer and turn this output buffer off'
-    				//ob_flush();     // for an unknown reason, need another flush
+					ob_end_flush();
 
 				}
 
@@ -597,6 +614,34 @@ class Restcontroller extends CI_Controller {
 			$l++;
 		}
 
+	}
+
+	private function make_captch_image($rand_chars)
+	{
+		$this->load->helper('url');
+
+		$this->load->helper('captcha');
+
+		$vals = array(
+		    'word'	 => $rand_chars,
+		    'img_path'	 => './captcha/',
+		    'img_url'	 => base_url().'captcha/',
+		    'font_path'	 => './system/fonts/texb.ttf',
+		    'img_width'	 => '160',
+		    'img_height' => 30,
+		    'expiration' => 7200
+		    );
+
+		$cap = create_captcha($vals);
+
+		$subject =			$cap['image'];
+		$pattern =			'~["](.+?)["]~';
+		preg_match($pattern, $subject, $matches, PREG_OFFSET_CAPTURE, 3);
+		$captcha_url		= $matches[1][0];
+
+		//$captcha_url		= substr_replace($captcha_url, 'https', 0, 4);//TODO uncomment this in production
+
+		return $captcha_url;
 	}
 
 }
