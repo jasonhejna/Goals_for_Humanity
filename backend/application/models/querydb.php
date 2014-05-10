@@ -2,6 +2,63 @@
 
 class Querydb extends CI_Model {
 
+	function select_goals_orderby_rating($limit1,$limit2)
+	{
+		$sql						= 'SELECT COUNT(rating) AS numberratings FROM ratings';
+
+		$query 						= $this->db->query($sql);
+
+		if ($query->num_rows() > 0)
+		{
+			$row 					= $query->row();
+			$query->free_result();
+			$data['max'] 			= $row->numberratings;
+		}
+		else
+		{
+			$query->free_result();
+
+			return 0;
+		}
+
+		if($limit2 > $data['max']){
+			return 'limit2error';
+			exit();
+		}
+
+		$length						= ($limit2 - $limit1) + 1;
+		
+		//$sql						= 'SELECT rating,goal,time FROM ratings ORDER BY rating DESC';
+
+		$this->db->select('rating,goal,time');
+		$this->db->from('ratings');
+		$this->db->order_by("rating", "desc");
+		$this->db->limit($length,$limit1);
+		$query = $this->db->get();
+
+		//$query 						= $this->db->query($sql);
+
+		if ($query->num_rows() > 0)
+		{
+			foreach ($query->result() as $row)
+			{
+				//$row = $query->row();
+				$data['rating'][] 	= $row->rating;
+				$data['goal'][] 	= $row->goal;
+				$data['time'][] 	= $row->time;
+			}
+			$query->free_result();
+
+			return $data;
+		}
+		else
+		{
+			$query->free_result();
+
+			return 0;
+		}
+	}
+
 	function insert_new_goal($new_goal_data)
 	{
 		$this->db->insert('new_goal', $new_goal_data);
@@ -10,9 +67,9 @@ class Querydb extends CI_Model {
 	function check_remaining_game($ip,$key)
 	{
 
-		$sql 									= 'SELECT id, player1_id, player2_id FROM remaining_games WHERE ip = ? AND vkey = ? ';
+		$sql 								= 'SELECT id, player1_id, player2_id FROM remaining_games WHERE ip = ? AND vkey = ? ';
 
-		$query 									= $this->db->query($sql, array($ip,$key));
+		$query 								= $this->db->query($sql, array($ip,$key));
 
 		if ($query->num_rows() > 0)
 		{

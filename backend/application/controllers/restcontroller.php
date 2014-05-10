@@ -14,6 +14,91 @@ class Restcontroller extends CI_Controller {
 		echo $this->Elologic->getRating2();
 	}*/
 
+	// echo goals in order of highest rank to lowest rank. The frontend specifies the
+	// number of returned items. 0 to 14 would return to top 15 goals. Also, there's a max
+	// of 24 goals sent per request.
+	public function echogoals()
+	{
+		ob_start();
+
+		$limit1			= $this->input->post('limit1');
+
+		$limit2			= $this->input->post('limit2');
+
+		if(!is_numeric($limit1) && !is_numeric($limit2))
+		{
+			header("HTTP/1.0 555 Both post values must be integer numbers");
+
+			ob_end_flush();
+
+			exit();
+		}
+
+		//make sure we aren't selecting more than 24 goals
+		$limit_diff		= $limit2 - $limit1;
+		if($limit_diff > 24){
+			header("HTTP/1.0 555 You can't request more than 24 goals");
+
+			ob_end_flush();
+
+			exit();
+		}
+
+		if($limit1 > $limit2){
+			header("HTTP/1.0 555 limit1 must be less than limit2");
+
+			ob_end_flush();
+
+			exit();
+		}
+
+		if($limit1 < 0)
+		{
+			header("HTTP/1.0 555 limit1 starts at zero");
+
+			ob_end_flush();
+
+			exit();
+		}
+
+		$this->load->model('Querydb');
+
+		//Select our goals
+		$data				= $this->Querydb->select_goals_orderby_rating($limit1,$limit2);
+
+		if($data === 0)
+		{
+			header("HTTP/1.0 555 something went wrong. Check back later");
+
+			ob_end_flush();
+
+			exit();
+		}
+		if($data === 'limit2error')
+		{
+			header("HTTP/1.0 555 limit2 was larger than the max");
+
+			ob_end_flush();
+
+			exit();
+		}
+
+		//parse the data into json
+		$found_goals_json	= '';
+		for($ie = 0; $ie <= $limit_diff; $ie++){
+			$found_goals_json .= '{"rank":"'.$data['rating'][$ie].'","goal":"'.$data['goal'][$ie].'","date":"'.$data['time'][$ie].'"},';
+		}
+
+		$found_goals_json 	= rtrim($found_goals_json, ',');
+
+		$maxGoals			= $data['max'] - 1; //subtract one since we start our goal count at zero
+
+		echo '{"success":1,"maxgoal":"'.$maxGoals.'","goalslength":'.$limit_diff.',"goals":['.$found_goals_json.']}';
+
+		ob_end_flush();
+
+	}
+
 	public function newgoal()
 	{
 
@@ -24,7 +109,7 @@ class Restcontroller extends CI_Controller {
 		if ( ! $this->input->valid_ip($ip_address))
 		{
 		    
-		    header("Your ip address is not valid. Sorry about that.");
+		    header("HTTP/1.0 555 Your ip address is not valid. Sorry about that.");
 
 			ob_end_flush();
 
@@ -123,11 +208,11 @@ class Restcontroller extends CI_Controller {
 
 			$found_goals_json = 		rtrim($found_goals_json, ',');
 
-			echo '{"captchaUrl":"'.$captcha_url.'","foundGoals":['.$found_goals_json.']}';
+			echo '{"captchaUrl":"'.$captcha_url.'","similarGoals":['.$found_goals_json.']}';
 		}
 		else
 		{
-			echo '{"captchaUrl":"'.$captcha_url.'","foundGoals":"null"}';
+			echo '{"captchaUrl":"'.$captcha_url.'","similarGoals":"null"}';
 		}
 
 		ob_end_flush();
@@ -152,7 +237,7 @@ class Restcontroller extends CI_Controller {
 
 		if ( ! $this->input->valid_ip($ip_address))
 		{
-			header("Your ip address is not valid. Sorry about that.");
+			header("HTTP/1.0 555 Your ip address is not valid. Sorry about that.");
 
 			ob_end_flush();
 
@@ -161,11 +246,11 @@ class Restcontroller extends CI_Controller {
 
 		$captcharesponse			= $this->input->post('userDefinedCaptcha');
 
-		//TODO verify it's in the new_goal table
+		//verify it's in the new_goal table
 		$this->load->model('Querydb');
 
-		$works 						= $this->Querydb->update_new_goal_status_confirmed($captcharesponse,$ip_address);//TODO not working
-log_message('debug', 'at least we got this far:'.$works);
+		$works 						= $this->Querydb->update_new_goal_status_confirmed($captcharesponse,$ip_address);
+
 		//goal found from captcha code response, and ip_address
 		if($works === 1)
 		{
@@ -176,7 +261,7 @@ log_message('debug', 'at least we got this far:'.$works);
 			exit();
 		}
 		//goal not found
-log_message('debug', 'at least we got this far:aftersuccess');
+
 		$captcha_code			= substr(uniqid('', true), -5);
 		$captcha_url			= $this->make_captch_image($captcha_code);
 
@@ -201,7 +286,7 @@ log_message('debug', 'at least we got this far:aftersuccess');
 		if ( ! $this->input->valid_ip($ip_address))
 		{
 		    
-		    header("Your ip address is not valid. Sorry about that.");
+		    header("HTTP/1.0 555 Your ip address is not valid. Sorry about that.");
 
 			ob_end_flush();
 
@@ -639,7 +724,10 @@ log_message('debug', 'at least we got this far:aftersuccess');
 		preg_match($pattern, $subject, $matches, PREG_OFFSET_CAPTURE, 3);
 		$captcha_url		= $matches[1][0];
 
-		//$captcha_url		= substr_replace($captcha_url, 'https', 0, 4);//TODO uncomment this in production
+		if($this->config->item('environment') === 'production')
+		{
+			$captcha_url		= substr_replace($captcha_url, 'https', 0, 4);
+		}
 
 		return $captcha_url;
 	}

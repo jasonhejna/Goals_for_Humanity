@@ -2,17 +2,17 @@ html {
 	margin: 0px;
 	padding: 0px;
 	width: 100%;
-	height: 100%;
+	height: 1500px;
 }
 body {
 	width: 800px;
-	height: 100%;
+	height: 1500px;
 	margin-left: auto;
 	margin-right: auto;	
 }
-
 header {
 	height:100px;
+	width:100%;
 	text-align: center;
 }
 pageTitle {
@@ -25,10 +25,20 @@ pageSubTitle {
 	font-style: 1.0em;
 	color:gray;
 }
-
+newgoal {
+	width: 800px;
+	height: 80px;
+	margin-top: 30px;
+	display:block;
+}
+captchaform {
+	width: 100%;
+	height:80px;
+	display: none;
+}
 mainContent {
 	width:800px;
-	height: 200px;
+	height:718px;
 	margin-left: auto;
 	margin-right: auto;
 	text-align: center;
@@ -36,37 +46,103 @@ mainContent {
 mainContentTitle {
 	font-size:2.5em;
 	color:red;
-	display:inline-block;
+	display:block;
 	vertical-align: middle;
+}
+game {
+	height:180px;
+	width:800px;
+	margin-top: 10px;
+	display:block;
 }
 player1 {
-	position: relative;
 	float: left;
 	width:40%;
-	height:inherit;
-	background-color: red;
-	color:#FFF;
-	display:inline-block;
-	vertical-align: middle;
-}
-player2 {
-	position: relative;
-	float:left;
-	width: 40%;
-	height:inherit;
+	height:180px;
 	background-color: blue;
 	color:#FFF;
-	display:inline-block;
+	display:block;
 	vertical-align: middle;
+	text-align: center;
+	cursor: pointer;
+}
+player2 {
+	float:left;
+	width:40%;
+	height:180px;
+	background-color: blue;
+	color:#FFF;
+	display:block;
+	vertical-align: middle;
+	text-align: center;
+	cursor: pointer;
 }
 tiegame {
-	position: relative;
 	float:left;
-	width: 20%;
-	height: inherit;
+	width:20%;
+	height: 89px;
 	background-color: gray;
 	color:#FFF;
+	text-align: center;
+	cursor: pointer;
 }
-captchaform {
-	display: none;
+skipgame {
+	float:left;
+	width:20%;
+	height: 89px;
+	background-color: gray;
+	color:#FFF;
+	text-align: center;
+	cursor: pointer;
+}
+echogoals {
+	width:800px;
+	height:500px;
+	display:block;
+}
+echogoals goaltitle {
+	width: 100%;
+	height:80px;
+	font-weight:bold;
+	display: block;
+}
+searchresults {
+	width: 100%;
+	margin-top: 30px;
+	display:block;
+}
+searchresult {
+	width:100%;
+	height:30px;
+	display:block;
+}
+echogoals rank {
+	width:130px;
+	height:20px;
+	margin-right:10px;
+}
+echogoals goal {
+	width:250px;
+	height:20px;
+	margin-right:10px;
+
+}
+echogoals date {
+	width:140px;
+	height:20px;
+	float:right;
+}
+next {
+	width:30px;
+	height:10px;
+	color:blue;
+	text-decoration:underline;
+	cursor: pointer;
+}
+back {
+	width:30px;
+	height:10px;
+	color:blue;
+	text-decoration:underline;
+	cursor: pointer;
 }
