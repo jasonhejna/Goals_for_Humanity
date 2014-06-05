@@ -30,13 +30,13 @@ class Elologic extends CI_Model {
 
 		$cscore1 = $this->computeScore($this->rating2, $this->rating1);
 		$cscore2 = $this->computeScore($this->rating1, $this->rating2);
-		if ($result == 1) {
+		if ($result == "goal1") {
 			$this->rating1 = $this->rating1 + ($this->computeK($this->rating1) * (1 - $cscore1));
 			$this->rating2 = $this->rating2 + ($this->computeK($this->rating2) * (0 - $cscore2));
-		} elseif ($result == 2) {
+		} elseif ($result == "goal2") {
 			$this->rating1 = $this->rating1 + ($this->computeK($this->rating1) * (0 - $cscore1));
 			$this->rating2 = $this->rating2 + ($this->computeK($this->rating2) * (1 - $cscore2));
-		} elseif ($result == 0) {
+		} elseif ($result == "tiegame") {
 			// Assume tie
 			$this->rating1 = $this->rating1 + ($this->computeK($this->rating1) * (0.5 - $cscore1));
 			$this->rating2 = $this->rating2 + ($this->computeK($this->rating2) * (0.5 - $cscore2));

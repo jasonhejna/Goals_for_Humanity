@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <title>Goals for Humanity</title>
 <meta name="viewport" content="initial-scale=1, maximum-scale=1">
-<meta name="keywords" content="Goals, goal, for, Humanity, mankind, society, accomplish, achieve, do, should">
+<meta name="keywords" content="goals, goal, humanity, mankind, society, accomplish, achieve">
 <meta name="description" content="Ranking goals for Humanity">
 <meta name="author" content="Jason Hejna">
 <link rel="stylesheet" type="text/css" href="styles.css">
@@ -13,22 +13,30 @@
 </head>
 <body>
 <header>
-<pageTitle>Goals for Humanity</pageTitle><br/>
+<pageTitle>Goals for Humanity</pageTitle>
 <pageSubTitle>Click the best goal for humanity</pageSubTitle>
 </header>
-<captchaform>
-	<input type="text" name="captcha_response" id="captcha_response" placeholder="captcha response" size="16"></input>
-	<input type="submit" value="submit"></input>
-</captchaform>
+
 <game>
-<player1>left</player1><tiegame>Tie game</tiegame><player2>right</player2>
+<player1>left</player1>
+<otheroptions>
+<tiegame>Tie game</tiegame>
+<skipgame>Skip Game</skipgame>
+</otheroptions>
+<player2>right</player2>
 </game>
+<br/>
 <newgoal id="new_goal_form">
 	<instructions>Submit a new goal for humanity:</instructions>
 	<input type="text" name="new_goal" id="new_goal" placeholder="Add a new goal for humanity" size="100"></input>
 	<input type="submit" value="submit"></input>
 </newgoal>
-<goaltitle>Browse the goals by rank</goaltitle>
+<captchaform>
+	<input type="text" name="captcha_response" id="captcha_response" placeholder="captcha response" size="16"></input>
+	<input type="submit" value="submit"></input>
+</captchaform>
+<br/>
+<goaltitle><b>Browse the goals by rank</b></goaltitle>
 <echogoals>
 <searchresults>
 </searchresults>

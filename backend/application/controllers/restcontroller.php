@@ -14,6 +14,32 @@ class Restcontroller extends CI_Controller {
 		echo $this->Elologic->getRating2();
 	}*/
 
+	private $data = array();
+
+	function __construct()
+	{
+		parent::__construct();
+		$ip_address = $this->input->ip_address();
+		if ( ! $this->input->valid_ip($ip_address))
+		{
+		    
+		    header("HTTP/1.1 555 Your ip address is not valid. Sorry about that.");
+
+			ob_end_flush();
+
+			exit();
+
+		}
+		//block too many requests
+		//ip lookup for a potential ban, or captcha
+
+
+		//also make a random number like 555 to use in our headers. In order to fuck
+		//with script kiddies
+
+	}
+
+
 	// echo goals in order of highest rank to lowest rank. The frontend specifies the
 	// number of returned items. 0 to 14 would return to top 15 goals. Also, there's a max
 	// of 24 goals sent per request.
@@ -21,13 +47,13 @@ class Restcontroller extends CI_Controller {
 	{
 		ob_start();
 
-		$limit1			= $this->input->post('limit1');
+		$start			= $this->input->post('start');
 
-		$limit2			= $this->input->post('limit2');
+		$num_results	= $this->input->post('num_results');
 
-		if(!is_numeric($limit1) && !is_numeric($limit2))
+		if(!is_numeric($start) && !is_numeric($num_results))
 		{
-			header("HTTP/1.0 555 Both post values must be integer numbers");
+			header("HTTP/1.1 555 Both post values must be integer numbers");
 
 			ob_end_flush();
 
@@ -35,26 +61,17 @@ class Restcontroller extends CI_Controller {
 		}
 
 		//make sure we aren't selecting more than 24 goals
-		$limit_diff		= $limit2 - $limit1;
-		if($limit_diff > 24){
-			header("HTTP/1.0 555 You can't request more than 24 goals");
+		if($num_results > 36){
+			header("HTTP/1.1 555 You can't request more than 36 goals");
 
 			ob_end_flush();
 
 			exit();
 		}
 
-		if($limit1 > $limit2){
-			header("HTTP/1.0 555 limit1 must be less than limit2");
-
-			ob_end_flush();
-
-			exit();
-		}
-
-		if($limit1 < 0)
+		if($start < 0)
 		{
-			header("HTTP/1.0 555 limit1 starts at zero");
+			header("HTTP/1.1 555 the start value must be zero or greater");
 
 			ob_end_flush();
 
@@ -63,20 +80,22 @@ class Restcontroller extends CI_Controller {
 
 		$this->load->model('Querydb');
 
+		log_message('debug', '!controller!start:'.$start.',num_results:'.$num_results);
+
 		//Select our goals
-		$data				= $this->Querydb->select_goals_orderby_rating($limit1,$limit2);
+		$data				= $this->Querydb->select_goals_orderby_rating($start,$num_results);
 
 		if($data === 0)
 		{
-			header("HTTP/1.0 555 something went wrong. Check back later");
+			header("HTTP/1.1 555 something went wrong. Check back later");
 
 			ob_end_flush();
 
 			exit();
 		}
-		if($data === 'limit2error')
+		if($data === 'limiterror')
 		{
-			header("HTTP/1.0 555 limit2 was larger than the max");
+			header("HTTP/1.1 555 one or more of the post values was larger than the number of goals");
 
 			ob_end_flush();
 
@@ -85,15 +104,18 @@ class Restcontroller extends CI_Controller {
 
 		//parse the data into json
 		$found_goals_json	= '';
-		for($ie = 0; $ie <= $limit_diff; $ie++){
+
+		$ie					= 0;
+		foreach ($data['rating'] as $key => $value) {
 			$found_goals_json .= '{"rank":"'.$data['rating'][$ie].'","goal":"'.$data['goal'][$ie].'","date":"'.$data['time'][$ie].'"},';
+			$ie++;
 		}
 
 		$found_goals_json 	= rtrim($found_goals_json, ',');
 
-		$maxGoals			= $data['max'] - 1; //subtract one since we start our goal count at zero
+		//$maxGoals			= $data['max'] - 1; //subtract one since we start our goal count at zero
 
-		echo '{"success":1,"maxgoal":"'.$maxGoals.'","goalslength":'.$limit_diff.',"goals":['.$found_goals_json.']}';
+		echo '{"success":1,"maxgoal":"'.$data['max'].'","num_results":'.$ie.',"goals":['.$found_goals_json.']}';
 
 		ob_end_flush();
 
@@ -109,7 +131,7 @@ class Restcontroller extends CI_Controller {
 		if ( ! $this->input->valid_ip($ip_address))
 		{
 		    
-		    header("HTTP/1.0 555 Your ip address is not valid. Sorry about that.");
+		    header("HTTP/1.1 555 Your ip address is not valid. Sorry about that.");
 
 			ob_end_flush();
 
@@ -124,7 +146,7 @@ class Restcontroller extends CI_Controller {
 
 		if($goal_char_count < 5)
 		{
-			header("HTTP/1.0 555 Goal must be greater than five characters");
+			header("HTTP/1.1 555 Goal must be greater than five characters");
 
 			ob_end_flush();
 
@@ -133,7 +155,7 @@ class Restcontroller extends CI_Controller {
 
 		if($goal_char_count > 256)
 		{
-			header("HTTP/1.0 555 Goal must be less than 256 characters");
+			header("HTTP/1.1 555 Goal must be less than 256 characters");
 
 			ob_end_flush();
 
@@ -151,7 +173,7 @@ class Restcontroller extends CI_Controller {
 			$word_char_count =		strlen($word);
 
 			if($word_char_count > 22){
-				header("HTTP/1.0 555 Goal can't have words with more than 22 characters");
+				header("HTTP/1.1 555 Goal can't have words with more than 22 characters");
 
 				ob_end_flush();
 
@@ -170,7 +192,7 @@ class Restcontroller extends CI_Controller {
 		{
 			log_message('debug', 'quotes_match:'.$data["matching_goal"][0]);
 			
-			header("HTTP/1.0 555 We already have your goal");
+			header("HTTP/1.1 555 We already have your goal");
 
 			ob_end_flush();
 
@@ -184,7 +206,7 @@ class Restcontroller extends CI_Controller {
 
 			//log_message('debug', 'quotes_match2:'.$data["matching_goal"][0]);
 
-			header("HTTP/1.0 555 We already have your goal");
+			header("HTTP/1.1 555 We already have your goal");
 
 			ob_end_flush();
 
@@ -237,7 +259,7 @@ class Restcontroller extends CI_Controller {
 
 		if ( ! $this->input->valid_ip($ip_address))
 		{
-			header("HTTP/1.0 555 Your ip address is not valid. Sorry about that.");
+			header("HTTP/1.1 555 Your ip address is not valid. Sorry about that.");
 
 			ob_end_flush();
 
@@ -286,7 +308,7 @@ class Restcontroller extends CI_Controller {
 		if ( ! $this->input->valid_ip($ip_address))
 		{
 		    
-		    header("HTTP/1.0 555 Your ip address is not valid. Sorry about that.");
+		    header("HTTP/1.1 555 Your ip address is not valid. Sorry about that.");
 
 			ob_end_flush();
 
@@ -296,13 +318,13 @@ class Restcontroller extends CI_Controller {
 
 		$key =			$this->input->post('key');
 
-		$player_won =	$this->input->post('player_won');
+		$game_result =	$this->input->post('game_result');
 
-		//$player_won =			(int)$player_won;
+		//$game_result =			(int)$game_result;
 
-		if($player_won != "0" && $player_won != "1" && $player_won != "2")
+		if($game_result != "goal1" && $game_result != "goal2" && $game_result != "tiegame" && $game_result != "skipgame")
 		{
-			header("HTTP/1.0 555 Improper post value");
+			header("HTTP/1.1 555 Improper post value");
 
 			ob_end_flush(); // php.net:'send the contents of the topmost output buffer and turn this output buffer off'
     		//ob_flush();     // for an unknown reason, need another flush
@@ -318,7 +340,7 @@ class Restcontroller extends CI_Controller {
 		if($data === 0)
 		{
 
-			header("HTTP/1.0 555 Couldn't find game. Please refresh.");
+			header("HTTP/1.1 555 Couldn't find game. Please refresh.");
 
 			ob_end_flush(); // php.net:'send the contents of the topmost output buffer and turn this output buffer off'
     		//ob_flush();     // for an unknown reason, need another flush
@@ -334,6 +356,11 @@ class Restcontroller extends CI_Controller {
 		ob_end_flush(); // php.net:'send the contents of the topmost output buffer and turn this output buffer off'
     	//ob_flush();     // for an unknown reason, need another flush
 
+    	if($game_result === "skipgame")
+		{
+			exit();
+		}
+
 		//get rating by player id
 		$player_data =			$this->Querydb->get_ratings_by_playerid($data["playerid"][1],$data["playerid"][2]);
 
@@ -344,7 +371,7 @@ class Restcontroller extends CI_Controller {
 
 		$this->load->model('Elologic');
 
-		$this->Elologic->setResult($player_won,$player_data["rating"][1],$player_data["rating"][2]);//0 is tie, 1 is player one, 2 is player two
+		$this->Elologic->setResult($game_result,$player_data["rating"][1],$player_data["rating"][2]);//0 is tie, 1 is player one, 2 is player two
 
 		$rating1 =				$this->Elologic->getRating1();
 		$rating2 =				$this->Elologic->getRating2();
@@ -377,7 +404,7 @@ class Restcontroller extends CI_Controller {
 		if ( ! $this->input->valid_ip($ip_address))
 		{
 		    
-		    header("HTTP/1.0 555 Your ip address is not valid. Sorry about that.");
+		    header("HTTP/1.1 555 Your ip address is not valid. Sorry about that.");
 
 			ob_end_flush();
 
@@ -438,9 +465,12 @@ class Restcontroller extends CI_Controller {
 				//
 				$this->load->library('encrypt');
 
-				$msg = 					rand(1,9999).'42'.rand(1,9999).$date_string.rand(1,9999).'labsrus';
+				$msg = 					'r0'.rand(1,9999).'42'.rand(1,9999).$date_string.rand(1,9999).'labsr1us';
 
 				$encrypted_string = 	$this->encrypt->sha1($msg);
+
+				//add salt
+
 
 				//$encrypted_string =		stripslashes($encrypted_string);
 
@@ -563,7 +593,7 @@ class Restcontroller extends CI_Controller {
 		        else
 		        {
 
-		        	header("HTTP/1.0 555 something went wrong");
+		        	header("HTTP/1.1 555 something went wrong");
 
 		        	ob_end_flush(); // php.net:'send the contents of the topmost output buffer and turn this output buffer off'
     				//ob_flush();     // for an unknown reason, need another flush
@@ -584,13 +614,17 @@ class Restcontroller extends CI_Controller {
 
 			    if($pass === 1)
 			    {
+			    	if($ip_address == ''){
+
+			    	}
+			    	$this->demo_delete_users($ip_address);
 			    	//check if there are new players and re-calculate
 					$this->remaining_games_since($ip_address);
 			    }
 			    else
 			    {
 
-			    	header("HTTP/1.0 555 all games played");//cool down time
+			    	header("HTTP/1.1 555 all games played");//cool down time
 
 			    	ob_end_flush(); // php.net:'send the contents of the topmost output buffer and turn this output buffer off'
 	    			//ob_flush();     // for an unknown reason, need another flush
@@ -619,7 +653,7 @@ class Restcontroller extends CI_Controller {
 		if($data === 'fail')
 		{
 
-			header("HTTP/1.0 555 all games played");
+			header("HTTP/1.1 555 all games played");
 
 			ob_end_flush(); // php.net:'send the contents of the topmost output buffer and turn this output buffer off'
     		//ob_flush();     // for an unknown reason, need another flush

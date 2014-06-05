@@ -25,15 +25,19 @@ function getdata(){
 this.eventlistener = function(){
 
   $("player1").click(function(){
-    getdata.gameresult(1);
+    getdata.gameresult("goal1");
   });
 
   $("player2").click(function(){
-    getdata.gameresult(2);
+    getdata.gameresult("goal2");
   });
 
   $("tiegame").click(function(){
-    getdata.gameresult(0);
+    getdata.gameresult("tiegame");
+  });
+
+  $("skipgame").click(function(){
+    getdata.gameresult("skipgame");
   });
 
   $("newgoal input:submit").click(function(){
@@ -76,6 +80,7 @@ this.selectplayers = function(){
       if(errorThrown == "all games played"){
         $("player1").hide();
         $("tiegame").hide();
+        $("skipgame").hide();
         $("player2").hide();
         alert("all games played!");
       }
@@ -86,14 +91,15 @@ this.selectplayers = function(){
 }
 
 this.gameresult = function(goalid){
-
+  console.log(goalid);
   $.ajax({
     type: "POST",
     url: "http://localhost/backend/gameresult",
-    data: {"key":this.key,"player_won":goalid},
+    data: {"key":this.key,"game_result":goalid},
     success: function(data, textStatus, json) {
       if(data == "success"){
         console.log("gameresult");
+        console.log("goalid"+goalid);
         getdata.selectplayers();
       }
 
@@ -182,36 +188,18 @@ this.echogoals = function(back){
   }
 
   if(back == 'TRUE') {
-    ie          = ie - 2;
+    ie           = ie - 2;
   }
 
   if(back != 'FALSE' && back != 'TRUE') {//it was a page load event
-    ie          = 0;
+    ie           = 0;
   }
 
-  console.log('eachogoals_count:'+ie);
-
-  var limit1    = ie*6;
-  ie++;
-  var limit2    = ie*6;
-
-
-
-  var maxgoal   = convienencemethods.getCookie('maxgoal');
-
-  if(maxgoal !== "" && limit1 >= maxgoal){
-    console.log('error:limit1 greater than max goal');
-    limit1      = maxgoal - 6;
-    ie          = 0;
-    $('echogoals navigation next').hide();
+  if (ie===0){
+    $('echogoals navigation back').remove();
   }
 
-  if(maxgoal !== "" && limit2 > maxgoal){
-    limit2      = maxgoal;
-    $('echogoals navigation next').hide();
-  }
-
-  if(ie > 1 && !$('echogoals navigation back').length ) {
+  if(ie > 0 && !$('echogoals navigation back').length ) {
     //add back button
     $('echogoals navigation').prepend('<back>back</back>');
     $("echogoals navigation back").click(function(){
@@ -219,23 +207,40 @@ this.echogoals = function(back){
     });
   }
 
-  if( ie == 1 ){
+  var num_result = 6;
+
+  var start = ie*num_result;
+
+  ie++;
+
+  if(maxgoal !== "" && start >= maxgoal){
+    console.log('error:start greater than max goal');
+    start         = maxgoal - num_result;
+    ie            = convienencemethods.getCookie('ie');
+    $('echogoals navigation next').hide();
+  }
+
+  var result_checksum   = (num_result) + (start);
+  var maxgoal           = convienencemethods.getCookie('maxgoal');
+  if(maxgoal !== "" && result_checksum > maxgoal){
+    start    = maxgoal - num_result;
+    $('echogoals navigation next').hide();
+  }
+
+  if( ie == 0 ){
     //remove back button
     $('echogoals navigation back').remove();
     $('echogoals navigation next').show();
   }
 
-  if(limit2 < maxgoal) {
+  if(back==="TRUE"){
     $('echogoals navigation next').show();
   }
-
-  console.log(limit1);
-  console.log(limit2);
 
   $.ajax({
     type: "POST",
     url: "http://localhost/backend/echogoals",
-    data: {"limit1":limit1,"limit2":limit2},
+    data: {"start":start,"num_results":num_result},
     success: function(data, textStatus, json) {
 
       console.log(data);
@@ -252,7 +257,7 @@ this.echogoals = function(back){
 
       if(json.success == 1)
       {
-        for (var i = 0; i < json.goalslength; i++) {
+        for (var i = 0; i < json.num_results; i++) {
           $("echogoals searchresults").append('<searchresult><rank>'+json.goals[i].rank+'</rank><goal>'+json.goals[i].goal+'</goal><date>'+json.goals[i].date+'</date></searchresult><br/>');
         };
       }

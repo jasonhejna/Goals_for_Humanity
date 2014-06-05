@@ -2,7 +2,12 @@
 
 class Querydb extends CI_Model {
 
-	function select_goals_orderby_rating($limit1,$limit2)
+	function demo_delete_users($ip_address)
+	{
+
+	}
+
+	function select_goals_orderby_rating($start,$num_results)
 	{
 		$sql						= 'SELECT COUNT(rating) AS numberratings FROM ratings';
 
@@ -21,19 +26,20 @@ class Querydb extends CI_Model {
 			return 0;
 		}
 
-		if($limit2 > $data['max']){
-			return 'limit2error';
+		$limit						= $start + $num_results;
+		if($limit > $data['max']){
+			return 'limiterror';
 			exit();
 		}
-
-		$length						= ($limit2 - $limit1) + 1;
 		
+		log_message('debug', 'start:'.$start.',num_results:'.$num_results);
+
 		//$sql						= 'SELECT rating,goal,time FROM ratings ORDER BY rating DESC';
 
 		$this->db->select('rating,goal,time');
 		$this->db->from('ratings');
 		$this->db->order_by("rating", "desc");
-		$this->db->limit($length,$limit1);
+		$this->db->limit($num_results,$start);
 		$query = $this->db->get();
 
 		//$query 						= $this->db->query($sql);
