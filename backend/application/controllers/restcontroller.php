@@ -213,6 +213,20 @@ class Restcontroller extends CI_Controller {
 			exit();
 		}
 
+		//generate a verify_code
+		//make encryption string with time and some random numbers
+		//
+		$t 						= microtime(true);
+		$micro					= sprintf("%06d",($t - floor($t)) * 1000000);
+		$d						= new DateTime( date('Y-m-d H:i:s.'.$micro,$t) );
+		$date_string			= $d->format("Y-m-d H:i:s.u");
+
+		$random_string 			= '96canhaz'.rand(1,9999).rand(1,9999).'che6se'.$date_string.rand(1,9999);
+
+		$this->load->library('encrypt');
+
+		$verify_code			= $this->encrypt->sha1($random_string);
+
 		//generate a captcha
 		$captcha_code			= substr(uniqid('', true), -5);
 		$captcha_url			= $this->make_captch_image($captcha_code);
@@ -230,17 +244,18 @@ class Restcontroller extends CI_Controller {
 
 			$found_goals_json = 		rtrim($found_goals_json, ',');
 
-			echo '{"captchaUrl":"'.$captcha_url.'","similarGoals":['.$found_goals_json.']}';
+			echo '{"verify_code":"'.$verify_code.'","captchaUrl":"'.$captcha_url.'","similarGoals":['.$found_goals_json.']}';
 		}
 		else
 		{
-			echo '{"captchaUrl":"'.$captcha_url.'","similarGoals":"null"}';
+			echo '{"verify_code":"'.$verify_code.'","captchaUrl":"'.$captcha_url.'","similarGoals":"null"}';
 		}
 
 		ob_end_flush();
 			
 		//insert data into the db
 		$new_goal = array(
+			'verify_code'	=>	$verify_code,
 			'captcha_code'	=>	$captcha_code,
 			'ip_address'	=>	$ip_address,
 			'goal'			=>	$goal,
@@ -268,10 +283,21 @@ class Restcontroller extends CI_Controller {
 
 		$captcharesponse			= $this->input->post('userDefinedCaptcha');
 
+		$verify_code				= $this->input->post('verify_code');
+
+		if(!isset($verify_code))
+		{
+			header("HTTP/1.1 555 The verify_code was not set in your post.");
+
+			ob_end_flush();
+
+			exit();
+		}
+
 		//verify it's in the new_goal table
 		$this->load->model('Querydb');
 
-		$works 						= $this->Querydb->update_new_goal_status_confirmed($captcharesponse,$ip_address);
+		$works 						= $this->Querydb->update_new_goal_status_confirmed($verify_code,$captcharesponse,$ip_address);
 
 		//goal found from captcha code response, and ip_address
 		if($works === 1)
@@ -287,12 +313,13 @@ class Restcontroller extends CI_Controller {
 		$captcha_code			= substr(uniqid('', true), -5);
 		$captcha_url			= $this->make_captch_image($captcha_code);
 
-		echo '{"success":"0","captchaUrl":"'.$captcha_url.'"}';
+		echo '{"success":"0","verify_code":"'.$verify_code.'","captchaUrl":"'.$captcha_url.'"}';
 
 		ob_end_flush();
 
 		//update new_goal table with new captcha code
-		$this->Querydb->update_new_goal_captcha_code($captcha_code,$ip_address);
+		//TODO: add a verify code
+		$this->Querydb->update_new_goal_captcha_code($verify_code,$captcha_code,$ip_address);
 
 	}
 
@@ -550,7 +577,7 @@ class Restcontroller extends CI_Controller {
 						   'ip' =>				$ip_address,
 						   'player1_id' =>		$goal,
 						   'player2_id'	=>		$last_goal,
-						   'vkey' =>				$encrypted_string,
+						   'vkey' =>			$encrypted_string,
 						   'time' =>			date("Y-m-d H:i:s")
 						);
 

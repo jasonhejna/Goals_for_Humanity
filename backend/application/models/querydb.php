@@ -121,18 +121,17 @@ class Querydb extends CI_Model {
 		}
 	}
 
-	function update_new_goal_status_confirmed($captcha_code,$ip_address)
+	function update_new_goal_status_confirmed($verify_code,$captcha_code,$ip_address)
 	{
 
 		//select the new_goal goal by it's captcha
 
-		$array 			= array('captcha_code' => $captcha_code, 'ip_address' => $ip_address);
+		$array 			= array('verify_code' => $verify_code,'captcha_code' => $captcha_code, 'ip_address' => $ip_address);
 
 		$this->db->where($array);
 
+		//update if we found a match
 		$data 			= array('status' => '2');
-
-		
 
 		$this->db->update('new_goal', $data);
 
@@ -144,9 +143,9 @@ class Querydb extends CI_Model {
 
 	}
 
-	function update_new_goal_captcha_code($captcha_code,$ip_address)
+	function update_new_goal_captcha_code($verify_code,$captcha_code,$ip_address)
 	{
-		$array 			= array('ip_address' => $ip_address);
+		$array 			= array('verify_code' => $verify_code,'ip_address' => $ip_address);
 
 		$this->db->where($array);
 

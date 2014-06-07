@@ -61,7 +61,7 @@ this.selectplayers = function(){
 
   $.ajax({
     type: "GET",//could be GET or POST
-    url: "http://localhost/backend/selectplayers",
+    url: "https://goalsforhumanity.com/backend/selectplayers",
     success: function(data, textStatus, text) {
 
       console.log(data);
@@ -94,7 +94,7 @@ this.gameresult = function(goalid){
   console.log(goalid);
   $.ajax({
     type: "POST",
-    url: "http://localhost/backend/gameresult",
+    url: "https://goalsforhumanity.com/backend/gameresult",
     data: {"key":this.key,"game_result":goalid},
     success: function(data, textStatus, json) {
       if(data == "success"){
@@ -117,7 +117,7 @@ this.newgoal = function(goal){
 
   $.ajax({
     type: "POST",
-    url: "http://localhost/backend/newgoal",
+    url: "https://goalsforhumanity.com/backend/newgoal",
     data: {"goal":goal},
     success: function(data, textStatus, json) {
 
@@ -128,6 +128,10 @@ this.newgoal = function(goal){
       $("captchaform").prepend('<img src="'+json.captchaUrl+'" width="160" height="30">');
 
       $("captchaform").show();
+
+      console.log(json.verify_code);
+
+      convienencemethods.setCookie('verify_code',json.verify_code);
 
       //console.log(json.similarGoals[0]);
 
@@ -151,10 +155,18 @@ this.newgoal = function(goal){
 
 this.captcharesponse = function(captcha){
   console.log("user_captcha_response:"+captcha)
+
+  var verify_code = convienencemethods.getCookie('verify_code');
+
+  if (verify_code===""){
+    alert('You must answer the captcha within five minutes of submitting your goal.');
+    return false;
+  }
+
   $.ajax({
     type: "POST",
-    url: "http://localhost/backend/verifycaptcha",
-    data: {"userDefinedCaptcha":captcha},
+    url: "https://goalsforhumanity.com/backend/verifycaptcha",
+    data: {"verify_code":verify_code,"userDefinedCaptcha":captcha},
     success: function(data, textStatus, json) {
 
       console.log(data);
@@ -163,10 +175,16 @@ this.captcharesponse = function(captcha){
 
       if(json.success == 1){
         alert("congratulations! Your goal submission was successfull. An admin will now review your submission.");
-        $("captchaform").remove();
+        $("captchaform").hide();
+        $("captchaform img").remove();
+        $("captchaform input#captcha_response").val("");
+
+        $("newgoal input#new_goal").val("");
+        $('newgoal').show();
       }
       else if(json.success == 0){
         $("captchaform img").remove();
+        $("captchaform input#captcha_response").val("");
         $("captchaform").prepend('<img src="'+json.captchaUrl+'" width="160" height="30">');
         alert("you have a new captcha to fill out");
       }
@@ -239,7 +257,7 @@ this.echogoals = function(back){
 
   $.ajax({
     type: "POST",
-    url: "http://localhost/backend/echogoals",
+    url: "https://goalsforhumanity.com/backend/echogoals",
     data: {"start":start,"num_results":num_result},
     success: function(data, textStatus, json) {
 
