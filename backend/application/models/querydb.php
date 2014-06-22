@@ -2,11 +2,6 @@
 
 class Querydb extends CI_Model {
 
-	function demo_delete_users($ip_address)
-	{
-
-	}
-
 	function select_goals_orderby_rating($start,$num_results)
 	{
 		$sql						= 'SELECT COUNT(rating) AS numberratings FROM ratings';
@@ -49,7 +44,7 @@ class Querydb extends CI_Model {
 			foreach ($query->result() as $row)
 			{
 				//$row = $query->row();
-				$data['rating'][] 	= $row->rating;
+				$data['rating'][] 	= round($row->rating,3);
 				$data['goal'][] 	= $row->goal;
 				$data['time'][] 	= $row->time;
 			}
@@ -319,7 +314,36 @@ class Querydb extends CI_Model {
 
 	}
 
-	function select_unplayed_games($player1_id,$player2_id)
+	function select_unplayed_games()
+	{
+
+		$sql = 'SELECT playerid FROM ratings';
+
+		$query = $this->db->query($sql);
+
+		if ($query->num_rows() > 0)
+		{
+
+			foreach ($query->result() as $row)
+			{
+				//$row = $query->row();
+				$data["remaininggoals"][] = $row->playerid;
+			}
+			$query->free_result();
+			return $data;
+
+		}
+		else
+		{
+
+			$query->free_result();
+			return 'fail'; //is this fails something is really wrong
+
+		}
+
+	}
+
+	/*function select_unplayed_games($player1_id,$player2_id)
 	{
 
 		$sql = 'SELECT playerid FROM ratings WHERE playerid != ? AND playerid != ?';
@@ -346,7 +370,7 @@ class Querydb extends CI_Model {
 
 		}
 
-	}
+	}*/
 
 	function insert_remaining_games($insert_data)
 	{

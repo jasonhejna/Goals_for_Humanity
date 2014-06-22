@@ -8,9 +8,11 @@ var convienencemethods = new convienencemethods();
 //
 $( document ).ready(function() {
 
-  getdata.selectplayers();
+  //getdata.selectplayers();
 
-  getdata.eventlistener();
+  //getdata.eventlistener();
+
+  //getdata.prelogineventlistener();
 
   getdata.echogoals();
 
@@ -21,6 +23,43 @@ $( document ).ready(function() {
 //getdata class
 //
 function getdata(){
+
+this.authenticatefblogin = function(access_token,user_id){
+  console.log("access_token:"+access_token);
+  console.log("user_id:"+user_id);
+
+  $.ajax({
+    type: "POST",
+    url: "https://goalsforhumanity.com/backend/authenticatefblogin",
+    data: {"access_token":access_token,"user_id":user_id},
+    success: function(data, textStatus, json) {
+      console.log(data);
+      $('loggedin').show();
+
+    },
+    error: function(json, textStatus, errorThrown) {
+      console.log(textStatus, errorThrown);
+      $("login").show();
+    }
+  });
+
+}
+
+this.prelogineventlistener = function(){
+  $("game").click(function(){
+    //launch the login
+    $("game").hide();
+    $("login").prepend("Please log into Facebook, or Google.<br/><br/>");
+  });
+
+  //echogoals doc ready navigation
+  $("echogoals navigation next").click(function(){
+    getdata.echogoals('FALSE');//pass back false so we don't include the back button
+  });
+
+  //show the login element
+  $('login').show();
+}
 
 this.eventlistener = function(){
 
@@ -97,10 +136,15 @@ this.gameresult = function(goalid){
     url: "https://goalsforhumanity.com/backend/gameresult",
     data: {"key":this.key,"game_result":goalid},
     success: function(data, textStatus, json) {
-      if(data == "success"){
+      console.log(data);
+      var json = JSON.parse(data);
+      console.log(json.success);
+      if(json.success == true){
         console.log("gameresult");
         console.log("goalid"+goalid);
         getdata.selectplayers();
+
+        alert(data);
       }
 
     },
@@ -123,7 +167,7 @@ this.newgoal = function(goal){
 
       console.log(data);
 
-      json = JSON.parse(data);
+      var json = JSON.parse(data);
 
       $("captchaform").prepend('<img src="'+json.captchaUrl+'" width="160" height="30">');
 
@@ -171,7 +215,7 @@ this.captcharesponse = function(captcha){
 
       console.log(data);
 
-      json = JSON.parse(data);
+      var json = JSON.parse(data);
 
       if(json.success == 1){
         alert("congratulations! Your goal submission was successfull. An admin will now review your submission.");
@@ -267,7 +311,7 @@ this.echogoals = function(back){
 
       $("echogoals").prepend('<searchresults></searchresults>');
 
-      json = JSON.parse(data);
+      var json = JSON.parse(data);
 
       convienencemethods.setCookie('ie',ie);
 

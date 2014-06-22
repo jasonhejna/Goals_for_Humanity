@@ -38,15 +38,15 @@
 |
 */
 
-//$route['default_controller'] = "restcontroller/selectplayers";
-$route['selectplayers'] 	= 'restcontroller/selectplayers';
-//$route['gameresult/(:any)/(:num)']		= 'restcontroller/gameresult/$1/$2';
-$route['gameresult']		= 'restcontroller/gameresult';
-$route['newgoal']			= 'restcontroller/newgoal';
-$route['verifycaptcha']		= 'restcontroller/verifycaptcha';
-$route['echogoals']			= 'restcontroller/echogoals';
-$route['404_override'] 		= '';
-
+$route['authenticatefblogin'] 	= 'restcontroller/authenticatefblogin';
+$route['selectplayers'] 		= 'restcontroller/selectplayers';
+//$route['gameresult/(:any)/(:num)']	= 'restcontroller/gameresult/$1/$2';
+$route['gameresult']			= 'restcontroller/gameresult';
+$route['newgoal']				= 'restcontroller/newgoal';
+$route['verifycaptcha']			= 'restcontroller/verifycaptcha';
+$route['echogoals']				= 'restcontroller/echogoals';
+$route['404_override'] 			= 'errorcontroller/senderror';
+$route['default_controller']	= 'errorcontroller/senderror';
 
 /* End of file routes.php */
 /* Location: ./application/config/routes.php */

@@ -31,15 +31,20 @@ class Elologic extends CI_Model {
 		$cscore1 = $this->computeScore($this->rating2, $this->rating1);
 		$cscore2 = $this->computeScore($this->rating1, $this->rating2);
 		if ($result == "goal1") {
-			$this->rating1 = $this->rating1 + ($this->computeK($this->rating1) * (1 - $cscore1));
-			$this->rating2 = $this->rating2 + ($this->computeK($this->rating2) * (0 - $cscore2));
+			$this->kwin		= ($this->computeK($this->rating1) * (1 - $cscore1));
+			$this->kloose	= ($this->computeK($this->rating2) * (0 - $cscore2));
+			$this->rating1	= $this->rating1 + $this->kwin;
+			$this->rating2	= $this->rating2 + $this->kloose;
 		} elseif ($result == "goal2") {
-			$this->rating1 = $this->rating1 + ($this->computeK($this->rating1) * (0 - $cscore1));
-			$this->rating2 = $this->rating2 + ($this->computeK($this->rating2) * (1 - $cscore2));
+			$this->kwin		= ($this->computeK($this->rating1) * (0 - $cscore1));
+			$this->kloose	= ($this->computeK($this->rating2) * (1 - $cscore2));
+			$this->rating1	= $this->rating1 + $this->kwin;
+			$this->rating2	= $this->rating2 + $this->kloose;
 		} elseif ($result == "tiegame") {
-			// Assume tie
-			$this->rating1 = $this->rating1 + ($this->computeK($this->rating1) * (0.5 - $cscore1));
-			$this->rating2 = $this->rating2 + ($this->computeK($this->rating2) * (0.5 - $cscore2));
+			$this->kwin		= ($this->computeK($this->rating1) * (0.5 - $cscore1));
+			$this->kloose	= ($this->computeK($this->rating2) * (0.5 - $cscore2));
+			$this->rating1	= $this->rating1 + $this->kwin;
+			$this->rating2	= $this->rating2 + $this->kloose;
 		}
 	}
 	
@@ -53,7 +58,7 @@ class Elologic extends CI_Model {
 	// different K-values based on the player's rating.
 	// Default K-value is 50
 	protected function computeK($rating) {
-		return 50;
+		return 30;
 	}
 	
 	public function getScore1() {
@@ -72,5 +77,13 @@ class Elologic extends CI_Model {
 	
 	public function getRating2() {
 		return $this->rating2;
+	}
+
+	public function getkwin() {
+		return $this->kwin;
+	}
+
+	public function getkloose() {
+		return $this->kloose;
 	}
 }

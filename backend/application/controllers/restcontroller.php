@@ -2,19 +2,7 @@
 
 class Restcontroller extends CI_Controller {
 
-	// Testing the elologic model
-	//
-/*	public function test()
-	{
-		$this->load->model('Elologic');
-
-		$this->Elologic->setResult(0,1700,1100);//0 is tie, 1 is player one, 2 is player two
-
-		echo $this->Elologic->getRating1() . ", ";
-		echo $this->Elologic->getRating2();
-	}*/
-
-	private $data = array();
+	/*private $data = array();
 
 	function __construct()
 	{
@@ -36,6 +24,127 @@ class Restcontroller extends CI_Controller {
 
 		//also make a random number like 555 to use in our headers. In order to fuck
 		//with script kiddies
+
+	}*/
+
+	/*public function testmycrypt()
+	{
+		ob_start();
+		echo ( ! function_exists('mcrypt_encrypt')) ? 'Nope' : 'Yup';
+		ob_end_flush();
+		exit();
+	}*/
+
+	/*public function __construct()
+	{
+		//make sure all requests are https, not http
+		parent::__construct();
+
+		$is_https			= $_SERVER['HTTPS'];
+
+		if(!isset($is_https))
+		{
+			//https not set
+			ob_start();
+			echo "https required";
+			ob_end_flush();
+			exit();
+		}
+
+	}*/
+
+	public function authenticatefblogin()
+	{
+		ob_start();
+
+		$access_token		= $this->input->post('access_token');
+
+		$user_id			= $this->input->post('user_id');
+
+		$user_agent			= $_SERVER['HTTP_USER_AGENT'];
+
+		$ip_address			= $this->input->ip_address();
+
+		if ( ! $this->input->valid_ip($ip_address))
+		{
+		    
+		    header("HTTP/1.1 555 Your ip address is not valid. Sorry about that.");
+
+			ob_end_flush();
+
+			exit();
+
+		}
+
+		/*
+		GET graph.facebook.com/debug_token?
+	     input_token={token-to-inspect}
+	     &access_token={app-token-or-admin-token}*/
+
+		$response			= file_get_contents('https://graph.facebook.com/debug_token?input_token='.$access_token.'&access_token='.$this->config->item('fb_app_id').'|'.$this->config->item('fb_app_secret'));
+		
+		//log_message('debug', 'info:' . print_r($info,TRUE) );
+		log_message('debug', 'response:' . print_r($response,TRUE) );
+
+		/*{
+		    "data": {
+		        "app_id": "124521",
+		        "is_valid": true,
+		        "application": "goalsforhumanity",
+		        "user_id": "12345677",
+		        "expires_at": 1402534800,
+		        "scopes": [
+		            "public_profile",
+		            "basic_info",
+		            "email",
+		            "user_friends"
+		        ]
+		    }
+		}*/
+
+		$response			= utf8_encode($response);
+
+		log_message('debug', 'json.decode:' . print_r(json_decode($response),TRUE) );
+
+		$response			= json_decode($response);
+
+		if(isset($response->data->error) || !isset($response->data->is_valid) || $response->data->is_valid !== true || $response->data->app_id !== $this->config->item('fb_app_id'))
+		{
+			log_message('debug', 'test_obj_value(app_id):' . $response->data->app_id );
+
+			header("HTTP/1.1 555 something went wrong");
+
+			ob_end_flush();
+
+			exit();
+
+		}
+
+		//user successfully logged in, now we'll create our own custom session
+
+		// get time
+		//
+		$t = 					microtime(true);
+		$micro = 				sprintf("%06d",($t - floor($t)) * 1000000);
+		$d = 					new DateTime( date('Y-m-d H:i:s.'.$micro,$t) );
+		$date_string = 			$d->format("Y-m-d H:i:s.u");
+
+		// create encryption key
+		//
+		$this->load->library('encrypt');
+
+		$msg = 					'i8'.rand(1,9999).'ty7e3'.rand(1,9999).$date_string.'3ca21k2e'.rand(1,9999).'la58kk7s';
+
+		$key =					'kJ2k34D82Akj2Hd4ja8sDjk5ha1Sk9Jb';
+
+		$encrypted_string = 	$this->encrypt->encode($msg,$key);
+
+		echo '{"success":"true","key":"'.$encrypted_string.'"}';
+
+		ob_end_flush();
+
+		//log the data into the active user's table
+
 
 	}
 
@@ -378,21 +487,24 @@ class Restcontroller extends CI_Controller {
 
 		$this->Querydb->delete_game($data["remaininggame"][1]);
 
-		echo 'success';
-
-		ob_end_flush(); // php.net:'send the contents of the topmost output buffer and turn this output buffer off'
-    	//ob_flush();     // for an unknown reason, need another flush
-
-    	if($game_result === "skipgame")
-		{
-			exit();
-		}
-
 		//get rating by player id
 		$player_data =			$this->Querydb->get_ratings_by_playerid($data["playerid"][1],$data["playerid"][2]);
 
+    	if($game_result === "skipgame")
+		{
+			echo '{"success":true,"origRating1":'.$player_data["rating"][1].',"origRating2":'.$player_data["rating"][2].',"newRating1":'.$player_data["rating"][1].',"newRating2":'.$player_data["rating"][2].',"change1":0,"change2":0}';
+
+			ob_end_flush();
+
+			exit();
+		}
+
 		if($player_data === 0)
 		{
+			header("HTTP/1.1 555 internal server error.");
+			
+			ob_end_flush();
+
 			exit();
 		}
 
@@ -402,6 +514,15 @@ class Restcontroller extends CI_Controller {
 
 		$rating1 =				$this->Elologic->getRating1();
 		$rating2 =				$this->Elologic->getRating2();
+
+		$change1 =				$this->Elologic->getkwin();
+		$change2 = 				$this->Elologic->getkloose();
+
+		//show the user how they affected the scores
+		//
+		echo '{"success":true,"origRating1":'.round($player_data["rating"][1],3).',"origRating2":'.round($player_data["rating"][2],3).',"newRating1":'.round($rating1,3).',"newRating2":'.round($rating2,3).',"change1":'.round($change1,3).',"change2":'.round($change2,3).'}';//TODO
+
+		ob_end_flush();
 
     	//update ratings with new scores
     	$update_data =			array(
@@ -418,9 +539,28 @@ class Restcontroller extends CI_Controller {
 
 
     	//TODO add data to game log
-    	//date("Y-m-d H:i:s")
+    	//date("Y-m-d H:i:s")//add micro-seconds
 
 	}
+
+	/*public function testelo()
+	{
+		ob_start();
+
+		$this->load->model('Elologic');
+
+		$this->Elologic->setResult('tiegame',1650.012,1320.823);
+
+		$rating1 =				$this->Elologic->getRating1();
+		$rating2 =				$this->Elologic->getRating2();
+
+		$kwin = 				$this->Elologic->getkwin();
+		$kloose =				$this->Elologic->getkloose();
+
+		echo "rating1:" . $rating1 . ", rating2:" . $rating2 . ", kwin:" . $kwin . ", kloose:" . $kloose;
+
+		ob_end_flush();
+	}*/
 
 	public function selectplayers()
 	{
@@ -463,7 +603,7 @@ class Restcontroller extends CI_Controller {
 
 		    	//select two random players
 		    	//
-		    	$highest_row = 			$this->Querydb->highest_row();
+		    	/*$highest_row = 			$this->Querydb->highest_row();
 
 		    	$rand_playerid_1 = 		rand(1,$highest_row);
 
@@ -478,7 +618,43 @@ class Restcontroller extends CI_Controller {
 
 					}
 
+				}*/
+
+				//generate all remaining games for the player
+				//
+				$data = $this->Querydb->select_unplayed_games();
+				//log_message('debug', 'select uploayed games:'.print_r($data));
+				//randomize the goals
+				//
+				if(empty($data["remaininggoals"][1]))
+				{
+					log_message('error', 'selecting unplayed games failed');
+
+					exit();
 				}
+
+				//order the goals we got back randomly
+				shuffle($data["remaininggoals"]);
+
+				//log_message('error', 'full_object' . print_r($data['remaininggoals'],TRUE) );
+
+				$max_object				= count($data['remaininggoals']);
+
+				$max_object				= $max_object - 1;
+
+				$next_last_object		= $max_object - 1;
+
+				$rand_playerid_1		= $data['remaininggoals'][$max_object];
+
+				$rand_playerid_2		= $data['remaininggoals'][$next_last_object];
+
+				log_message('error', 'rand_playerid_1:'.$rand_playerid_1.',rand_playerid_2:'.$rand_playerid_2);
+
+				unset($data['remaininggoals'][$max_object]);
+
+				unset($data['remaininggoals'][$next_last_object]);
+
+				//log_message('error', 'full_object_delete' . print_r($data['remaininggoals'],TRUE) );
 
 		    	// get time
 				//
@@ -496,7 +672,7 @@ class Restcontroller extends CI_Controller {
 
 				$encrypted_string = 	$this->encrypt->sha1($msg);
 
-				//add salt
+				//TODO: add salt
 
 
 				//$encrypted_string =		stripslashes($encrypted_string);
@@ -514,8 +690,7 @@ class Restcontroller extends CI_Controller {
 				//
 				echo '{"key": "'.$encrypted_string.'","goal1": "'.$goal_string_1.'","goal2": "'.$goal_string_2.'"}';
 
-				ob_end_flush(); // php.net:'send the contents of the topmost output buffer and turn this output buffer off'
-    			//ob_flush();     // for an unknown reason, need another flush
+				ob_end_flush();
 
     			//add this game to the remaining games table
 				$single_remaining_game = array(
@@ -527,21 +702,6 @@ class Restcontroller extends CI_Controller {
 				);
 
 				$this->Querydb->insert_remaining_games($single_remaining_game);
-
-				//generate all remaining games for the player
-				//
-				$data = $this->Querydb->select_unplayed_games($rand_playerid_1,$rand_playerid_2);
-				//log_message('debug', 'select uploayed games:'.print_r($data));
-				//randomize the goals
-				//
-				if(empty($data["remaininggoals"][1]))
-				{
-					log_message('error', 'selecting unplayed games failed');
-
-					exit();
-				}
-			
-				shuffle($data["remaininggoals"]);
 				
 				//insert the remaining goals into remaininggames table
 				//
@@ -605,8 +765,7 @@ class Restcontroller extends CI_Controller {
 			        //header("Content-Type: text/html; charset=UTF-8");
 					echo '{"key": "'.$game_data["currentgamedata"]["key"][1].'","goal1": "'.$game_data["currentgamedata"]["goal1"].'","goal2": "'.$game_data["currentgamedata"]["goal2"].'"}';
 
-		        	ob_end_flush(); // php.net:'send the contents of the topmost output buffer and turn this output buffer off'
-    				//ob_flush();     // for an unknown reason, need another flush
+		        	ob_end_flush();
 
 		        }
 		        elseif($game_data === 0)
@@ -622,8 +781,7 @@ class Restcontroller extends CI_Controller {
 
 		        	header("HTTP/1.1 555 something went wrong");
 
-		        	ob_end_flush(); // php.net:'send the contents of the topmost output buffer and turn this output buffer off'
-    				//ob_flush();     // for an unknown reason, need another flush
+		        	ob_end_flush();
 
 		        }
 
@@ -784,11 +942,6 @@ class Restcontroller extends CI_Controller {
 		$pattern =			'~["](.+?)["]~';
 		preg_match($pattern, $subject, $matches, PREG_OFFSET_CAPTURE, 3);
 		$captcha_url		= $matches[1][0];
-
-		if($this->config->item('environment') === 'production')
-		{
-			$captcha_url		= substr_replace($captcha_url, 'https', 0, 4);
-		}
 
 		return $captcha_url;
 	}

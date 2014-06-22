@@ -11,26 +11,47 @@ body {
 	margin-right: auto;	
 }
 header {
-	height:60px;
+	height:120px;
 	width:100%;
 	text-align: center;
-	margin-bottom: 40px;
+	margin-bottom:20px;
 }
 pageTitle {
 	width:100%;
 	font-size:2.5em;
 	color:#000;
 }
+.logo {
+	top: 10px;
+	position: relative;
+}
 pageSubTitle {
 	width:100%;
-	font-style: 1.0em;
+	height:20px;
+	font-size: 1.0em;
 	color:gray;
+}
+pageSubSubTitle {
+	width:100%;
+	height:20px;
+	font-size: 0.8em;
+	color:gray;
+}
+login {
+	width: 100%;
+	height:80px;
+	text-align: center;
+	margin-bottom: 20px;
+	display:none;
 }
 newgoal {
 	width: 800px;
 	height: 50px;
 	margin-top: 30px;
 	display:block;
+}
+loggedin {
+	display: none;
 }
 captchaform {
 	width: 100%;
@@ -110,9 +131,10 @@ echogoals {
 	height:500px;
 	display:block;
 }
-echogoals goaltitle {
+goaltitle {
 	width: 100%;
-	height:80px;
+	height:20px;
+	margin-top: 30px;
 	font-weight:bold;
 	text-align: center;
 	display: block;

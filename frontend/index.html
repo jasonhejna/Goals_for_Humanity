@@ -3,6 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <title>Goals for Humanity</title>
+<meta charset="UTF-8">
 <meta name="viewport" content="initial-scale=1, maximum-scale=1">
 <meta name="keywords" content="goals, goal, humanity, mankind, society, accomplish, achieve">
 <meta name="description" content="Ranking goals for Humanity">
@@ -10,22 +11,32 @@
 <link rel="stylesheet" type="text/css" href="styles.css">
 <script src="jquery.min.js"></script>
 <script src="test.js"></script>
+<script src="fb.js"></script>
+
 </head>
 <body>
 <header>
-<pageTitle>Goals for Humanity<sup>BETA</sup></pageTitle><br/>
-<pageSubTitle>Click the best goal for humanity</pageSubTitle>
+<pageTitle>Goals for Humanity<img class="logo" src="Logo.png" width="44px" height="44px"><sup>not even Alpha</sup></pageTitle>
+<br/>
+<pageSubTitle>Our goal is simple: we want to find Humanities' top goals. You can help us by clicking the goal for humanity you find best.</pageSubTitle><br/>
+<pageSubSubTitle>We're still in development so things are often broken (we do apologize). We're using this site to test our backend, and give demos. We hope you will come back soon and check out our progress. For questions or comments: feel free to email jason.hejna@gmail.com</pageSubSubTitle>
 </header>
 
+<login>
+<fb:login-button scope="public_profile,email" onlogin="checkLoginState();"></fb:login-button>
+<div id="status"></div>
+</login>
+
 <game>
-<player1>left</player1>
+<player1>Stop Global Warming</player1>
 <otheroptions>
-<tiegame>Tie game</tiegame>
+<tiegame>Tie Game</tiegame>
 <skipgame>Skip Game</skipgame>
 </otheroptions>
-<player2>right</player2>
+<player2>Better Education</player2>
 </game>
-<br/>
+
+<loggedin>
 <newgoal id="new_goal_form">
 	<instructions>Submit a new goal for humanity:</instructions>
 	<input type="text" name="new_goal" id="new_goal" placeholder="Add a new goal for humanity" size="100"></input>
@@ -35,7 +46,8 @@
 	<input type="text" name="captcha_response" id="captcha_response" placeholder="captcha response" size="16"></input>
 	<input type="submit" value="submit"></input>
 </captchaform>
-<br/>
+</loggedin>
+
 <goaltitle><b>Browse the goals by rank</b></goaltitle>
 <echogoals>
 <searchresults>
