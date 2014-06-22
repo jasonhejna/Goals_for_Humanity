@@ -18,16 +18,14 @@ This file is part of goalsforhumanity.
 
 README
 
+Goalsforhumanity is our first project... it's a ranking system that allows anyone to rank goals for humanity. Although we are planning on making Goals For America too. And releasing the code so anyone may create a goals for _____ for their region, city, state, country, etc.
+
+You can check out a demo of the front-end at goalsforhumanity.com (login:"obi",password:"obiwan).
+
 This build is meant to handle all back end web services for ranking things with the ELO ratings system (http://en.wikipedia.org/wiki/Elo_rating_system).
 
 This system also incorporates security considerations arrising from allowing anyone in the world to submit results.
 
-This system tracks all relevent data in a database.
+This system tracks all relevent data in a database. Using PHP, MySQL, and CodeIgniter on the backend.
 
-The following example urls will control game play
-http://goalsforhumanity.com/backend/selectplayers
-http://goalsforhumanity.com/backend/gameresult/019f8ab18c2a7732e179adb43484a4e485947b9b/1
-
-Using CodeIgniters
-
-
+Front End Developer Documentation (partially complete) is available here... https://docs.google.com/document/d/1b8s5aHaP98yTLttItqdEebeX8AWatt6NOkME5zVN3NY/edit?usp=sharing
